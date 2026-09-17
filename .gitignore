@@ -1,0 +1,5 @@
+# log que o Albion Data Client grava quando aberto a partir desta pasta
+albiondata-client.log
+# saída do Playwright MCP durante testes
+.playwright-mcp/
+node_modules/

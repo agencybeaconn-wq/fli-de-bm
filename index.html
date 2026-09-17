@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Albion Flip de BM</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     Liquid Glass — mesmo idioma visual do NODE (Beacon System/src/index.css):
+     campo ambiente que o vidro refrata, materiais por hierarquia (chrome >
+     float > card), aresta especular no topo, raios concêntricos, elevação e
+     vibrância. Só a camada de design; a lógica da página não muda.
+     Sem media query de transparência reduzida de propósito: no Windows com
+     "efeitos de transparência" desligado o Chrome reporta reduce=true e
+     mataria todo o backdrop-filter (landmine já paga no NODE).
+     ========================================================================== */
+  :root {
+    /* Campo ambiente: quase-preto neutro com um brilho quente (ouro do BM) e dois frios.
+       Preto puro mata o vidro: ele precisa de algo pra refratar. */
+    --amb-a: 40 34% 9%;
+    --amb-b: 258 18% 9%;
+    --amb-c: 205 20% 8%;
+    --amb-base: 0 0% 2%;
+    /* Materiais (escuro). Chrome = painel de controles; float = menus; card = tabela e cesta. */
+    --mat-chrome-bg: 16 16 18; --mat-chrome-alpha: .50; --mat-chrome-blur: 28px; --mat-chrome-sat: 180%;
+    --mat-float-bg: 30 30 34; --mat-float-alpha: .62; --mat-float-blur: 36px; --mat-float-sat: 200%;
+    --mat-card-bg: 28 28 32; --mat-card-alpha: .52; --mat-card-blur: 20px; --mat-card-sat: 160%;
+    --mat-edge-top: rgba(255, 255, 255, .20);
+    --mat-edge-ring: rgba(255, 255, 255, .11);
+    --elev-1: 0 1px 2px rgba(0, 0, 0, .40);
+    --elev-2: 0 4px 12px -2px rgba(0, 0, 0, .50), 0 1px 2px rgba(0, 0, 0, .30);
+    --elev-3: 0 12px 28px -6px rgba(0, 0, 0, .60), 0 2px 6px -2px rgba(0, 0, 0, .40);
+    --elev-4: 0 32px 64px -16px rgba(0, 0, 0, .70), 0 8px 20px -8px rgba(0, 0, 0, .50);
+    /* Vibrância: texto sobre vidro precisa de mais contraste, não de cinza chapado */
+    --vib-1: hsl(0 0% 100%);
+    --vib-2: hsl(0 0% 78%);
+    --vib-3: hsl(0 0% 58%);
+    /* Raios concêntricos: janela > card > controle > interno */
+    --r-window: 26px; --r-card: 20px; --r-control: 12px; --r-inner: 8px; --r-chip: 8px;
+    /* Preenchimentos e anéis de controle */
+    --fill: rgba(255, 255, 255, .06);
+    --fill-2: rgba(255, 255, 255, .10);
+    --ring: rgba(255, 255, 255, .10);
+    --divider: rgba(255, 255, 255, .07);
+    /* Acento do produto: o ouro do Black Market */
+    --accent: #d9a441;
+    --accent-2: #f0c464;
+    --accent-ink: #1a1206;
+    --accent-soft: rgba(217, 164, 65, .14);
+    /* Cores por tipo de valor na tabela: seis matizes bem separados */
+    --c-custo: #ff6b6b;
+    --c-est: #c084fc;
+    --c-est-soft: rgba(192, 132, 252, .16);
+    --c-bm: #f7d046;
+    --c-liq: #ff9a3c;
+    --c-lucro: #4ade80;
+    --c-roi: #60a5fa;
+    /* SF Pro real quando instalada (está neste PC), Geist como fallback SF-like */
+    --font: "SF Pro Display", "SF Pro Text", "SF Pro", "Geist", -apple-system, system-ui, sans-serif;
+    --mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+    --ease-out: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; color: var(--vib-1); font-family: var(--font); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  body {
+    min-height: 100vh; padding: 28px 24px 56px;
+    background-color: hsl(var(--amb-base));
+    background-image:
+      radial-gradient(ellipse 90% 65% at 12% -8%, hsl(var(--amb-a)) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 60% at 95% 12%, hsl(var(--amb-b)) 0%, transparent 52%),
+      radial-gradient(ellipse 85% 70% at 45% 110%, hsl(var(--amb-c)) 0%, transparent 58%);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; }
+
+  /* ---- materiais ---- */
+  .mat-chrome, .mat-float, .mat-card { -webkit-backdrop-filter: var(--bf); backdrop-filter: var(--bf); }
+  .mat-chrome {
+    --bf: blur(var(--mat-chrome-blur)) saturate(var(--mat-chrome-sat));
+    background-color: rgb(var(--mat-chrome-bg) / var(--mat-chrome-alpha));
+    border-radius: var(--r-window);
+    box-shadow: var(--elev-3), inset 0 1px 0 0 var(--mat-edge-top), inset 0 0 0 1px var(--mat-edge-ring);
+  }
+  .mat-float {
+    --bf: blur(var(--mat-float-blur)) saturate(var(--mat-float-sat));
+    background-color: rgb(var(--mat-float-bg) / var(--mat-float-alpha));
+    box-shadow: var(--elev-3), inset 0 1px 0 0 var(--mat-edge-top), inset 0 0 0 1px var(--mat-edge-ring);
+  }
+  .mat-card {
+    --bf: blur(var(--mat-card-blur)) saturate(var(--mat-card-sat));
+    background-color: rgb(var(--mat-card-bg) / var(--mat-card-alpha));
+    border-radius: var(--r-card);
+    box-shadow: var(--elev-2), inset 0 1px 0 0 var(--mat-edge-top), inset 0 0 0 1px var(--mat-edge-ring);
+  }
+
+  /* ---- cabeçalho ---- */
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 4px 22px; }
+  h1 { margin: 0; line-height: 0; }
+  .logo-img { display: block; height: 56px; width: auto; }
+  .sub { margin: 0; color: var(--vib-2); max-width: 62ch; font-size: 14.5px; }
+
+  /* ---- painel de controles (chrome flutuante) ---- */
+  /* O backdrop-filter cria contexto de empilhamento; sem isto a cesta e a tabela (vidro, mais abaixo no HTML)
+     pintam por cima dos menus abertos do painel. */
+  .painel { position: relative; z-index: 10; padding: 22px 24px 20px; }
+  .controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px 18px; align-items: end; }
+  .campo { display: flex; flex-direction: column; gap: 7px; }
+  .campo > label, .grupo-label { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; font-weight: 600; letter-spacing: .01em; color: var(--vib-2); }
+  .ajuda { margin-left: auto; font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0; color: var(--vib-3); }
+  select, input[type=number], input[type=search], .multi-btn {
+    width: 100%; height: 40px; padding: 0 12px; color: var(--vib-1); background: var(--fill);
+    border: 0; border-radius: var(--r-control); font: inherit; font-size: 14px; outline: none;
+    box-shadow: inset 0 0 0 1px var(--ring), inset 0 1px 0 0 rgba(255, 255, 255, .04);
+    transition: background .15s var(--ease-out), box-shadow .15s var(--ease-out);
+  }
+  select { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23c7c7cc' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  select option { background: #1e1e22; color: var(--vib-1); }
+  input[type=number] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  select:hover, input:hover, .multi-btn:hover { background-color: var(--fill-2); }
+  select:focus, input:focus, .multi-btn:focus-visible, .multi.aberto .multi-btn { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft); }
+  input::placeholder { color: var(--vib-3); }
+
+  .caixa {
+    appearance: none; width: 16px; height: 16px; margin: 0; flex: none; position: relative; cursor: pointer;
+    border-radius: 5px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring);
+    transition: background .12s var(--ease-out), box-shadow .12s var(--ease-out), transform .1s var(--ease-out);
+  }
+  .caixa:hover { background: var(--fill-2); }
+  .caixa:active { transform: scale(.92); }
+  .caixa:checked { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .caixa:checked::after { content: ''; position: absolute; left: 5px; top: 2px; width: 4px; height: 8px; border: solid var(--accent-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+  /* dropdown de múltipla escolha: botão como controle, menu como material flutuante que "materializa" */
+  .multi { position: relative; }
+  .multi-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; cursor: pointer; }
+  .multi-btn:active { transform: scale(.985); }
+  .multi-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .multi-seta { color: var(--vib-3); font-size: 12px; flex: none; }
+  .multi-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; min-width: 100%; z-index: 5; padding: 6px;
+    border-radius: var(--r-control); transform-origin: top left;
+    animation: materializar .18s var(--ease-out);
+  }
+  @keyframes materializar { from { opacity: 0; transform: scale(.96) translateY(-4px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  .multi-op { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-inner); cursor: pointer; font-size: 14px; white-space: nowrap; transition: background .12s var(--ease-out); }
+  .multi-op:hover { background: var(--fill-2); }
+  .multi-op:active { background: rgba(255, 255, 255, .14); }
+  .multi-op.todos { margin-bottom: 4px; padding-bottom: 9px; border-bottom: 1px solid var(--divider); border-radius: var(--r-inner) var(--r-inner) 0 0; }
+
+  /* interruptor iOS */
+  .toggle { display: flex; align-items: center; gap: 10px; height: 40px; cursor: pointer; color: var(--vib-1); font-size: 14px; }
+  .toggle input { appearance: none; width: 42px; height: 26px; border-radius: 999px; background: var(--fill-2); box-shadow: inset 0 0 0 1px var(--ring); position: relative; cursor: pointer; transition: background .18s var(--ease-out); margin: 0; flex: none; }
+  .toggle input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--elev-1); transition: transform .18s var(--ease-out); }
+  .toggle input:checked { background: var(--accent); box-shadow: none; }
+  .toggle input:checked::after { transform: translateX(16px); }
+  .toggle:active input::after { transform: scaleX(1.15); transform-origin: left; }
+  .toggle:active input:checked::after { transform: translateX(13px) scaleX(1.15); transform-origin: right; }
+
+  /* ---- ações ---- */
+  .acoes { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--divider); }
+  button.primario {
+    height: 42px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+    font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+    box-shadow: var(--elev-2), inset 0 1px 0 0 rgba(255, 255, 255, .35);
+    transition: transform .1s var(--ease-out), filter .15s var(--ease-out);
+  }
+  button.primario:hover { filter: brightness(1.06); }
+  button.primario:active { transform: scale(.97); }
+  button.primario:disabled { opacity: .55; cursor: progress; transform: none; }
+  button.secundario {
+    height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent-soft); color: var(--accent-2);
+    box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .45); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    transition: transform .1s var(--ease-out), background .15s var(--ease-out);
+  }
+  button.secundario:hover { background: rgba(217, 164, 65, .22); }
+  button.secundario:active { transform: scale(.97); }
+  button.link { background: none; border: 0; padding: 0; color: var(--vib-2); font: inherit; font-size: 13.5px; cursor: pointer; transition: color .15s; }
+  button.link:hover { color: var(--vib-1); }
+  .status { color: var(--vib-2); font-size: 14px; }
+  .status.erro { color: #ff8a80; }
+  .barra { height: 4px; width: 160px; background: var(--fill-2); border-radius: 2px; overflow: hidden; }
+  .barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s var(--ease-out); }
+
+  /* ---- resumo, cesta, legenda ---- */
+  .resumo { display: flex; gap: 22px; flex-wrap: wrap; margin: 22px 4px 12px; color: var(--vib-2); font-size: 14px; }
+  .resumo b { color: var(--vib-1); font-family: var(--mono); font-weight: 500; }
+  .cesta {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 0 0 12px; padding: 14px 18px; font-size: 14px;
+    box-shadow: var(--elev-2), inset 0 1px 0 0 var(--mat-edge-top), inset 0 0 0 1px rgba(217, 164, 65, .40);
+  }
+  .cesta .titulo { color: var(--accent-2); font-weight: 650; }
+  .cesta b { font-family: var(--mono); font-weight: 500; }
+  .cesta .botoes { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+  .legenda { display: flex; gap: 18px; flex-wrap: wrap; margin: 0 4px 10px; font-size: 13px; color: var(--vib-2); }
+  .legenda span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: currentColor; vertical-align: -1px; }
+
+  /* ---- tabela (grouped list) ---- */
+  .tabela-wrap { overflow: auto; max-height: 72vh; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+  thead th {
+    position: sticky; top: 0; z-index: 1; color: var(--vib-2); font-size: 12.5px; font-weight: 600; letter-spacing: .01em; text-align: left;
+    padding: 12px 10px; white-space: nowrap;
+    background: rgb(var(--mat-card-bg) / .78); -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+    box-shadow: 0 1px 0 var(--divider);
+  }
+  thead th:first-child { border-top-left-radius: var(--r-card); }
+  thead th:last-child { border-top-right-radius: var(--r-card); }
+  th.ord { cursor: pointer; user-select: none; transition: filter .15s; }
+  th.ord:hover { filter: brightness(1.3); }
+  th.ord .seta { display: inline-block; margin-left: 5px; opacity: .35; }
+  th.ord .seta::after { content: '\2195'; }
+  th.ord.ativo { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
+  th.ord.ativo .seta { opacity: 1; }
+  th.ord.ativo.desc .seta::after { content: '\2193'; }
+  th.ord.ativo.asc .seta::after { content: '\2191'; }
+  th.num, td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .c-custo { color: var(--c-custo); }
+  .c-est { color: var(--c-est); }
+  .c-bm { color: var(--c-bm); }
+  .c-liq { color: var(--c-liq); }
+  .c-lucro { color: var(--c-lucro); }
+  .c-roi { color: var(--c-roi); }
+  td.c-lucro, td.c-roi { font-weight: 500; }
+  th.sel, td.sel { width: 36px; padding-right: 0; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid var(--divider); white-space: nowrap; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background .12s var(--ease-out); }
+  tbody tr:hover { background: rgba(255, 255, 255, .04); }
+  tbody tr.na-cesta { background: var(--accent-soft); }
+  .item { display: flex; align-items: center; gap: 10px; }
+  .item img { width: 40px; height: 40px; border-radius: var(--r-inner); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); flex: none; }
+  .item .nome { font-weight: 500; }
+  .item .meta { font-size: 12px; color: var(--vib-2); }
+  .tier { font-family: var(--mono); color: var(--accent-2); }
+  .qual { color: var(--vib-1); }
+  .est { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: var(--r-chip); background: var(--accent-soft); color: var(--accent-2); font-family: var(--font); font-size: 11px; font-weight: 500; }
+  .badge-est { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: var(--r-chip); background: var(--c-est-soft); color: var(--c-est); font-family: var(--font); font-size: 11px; font-weight: 500; }
+  .subtxt { display: block; margin-top: 2px; font-family: var(--font); font-size: 11px; color: var(--vib-2); }
+  input.qtd { width: 68px; height: 32px; padding: 0 8px; text-align: right; border-radius: var(--r-inner); }
+  .idade { color: var(--vib-2); font-size: 13px; }
+  .idade.velho { color: var(--vib-3); }
+  .idade.velho::before { content: '\26A0 '; }
+  .vazio { padding: 48px 20px; text-align: center; color: var(--vib-2); }
+  .nota { margin: 14px 4px 0; color: var(--vib-3); font-size: 13px; }
+
+  /* ---- abas (controle segmentado) ---- */
+  .marca { display: flex; flex-direction: column; gap: 6px; }
+  .abas { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); align-self: center; }
+  .aba {
+    height: 34px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--vib-2);
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .18s var(--ease-out), color .18s var(--ease-out), transform .1s var(--ease-out);
+  }
+  .aba:hover { color: var(--vib-1); }
+  .aba:active { transform: scale(.97); }
+  .aba.ativa { background: rgba(255, 255, 255, .14); color: var(--vib-1); box-shadow: var(--elev-1), inset 0 1px 0 0 var(--mat-edge-top); }
+
+  /* ---- guia ---- */
+  .guia { display: grid; gap: 16px; }
+  .guia section { padding: 22px 26px 24px; }
+  .guia section.destaque { box-shadow: var(--elev-2), inset 0 1px 0 0 var(--mat-edge-top), inset 0 0 0 1px rgba(217, 164, 65, .45); }
+  .guia h2 { margin: 0 0 10px; font-size: 20px; font-weight: 650; letter-spacing: -0.015em; }
+  .guia .destaque h2 { color: var(--accent-2); }
+  .guia h3 { margin: 0 0 4px; font-size: 14.5px; font-weight: 600; color: var(--vib-1); }
+  .guia p, .guia li { color: var(--vib-2); max-width: 78ch; }
+  .guia p { margin: 0 0 10px; }
+  .guia p:last-child { margin-bottom: 0; }
+  .guia b { color: var(--vib-1); font-weight: 600; }
+  .guia a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 3px; }
+  .guia a:hover { color: var(--accent); }
+  .guia .mini { font-size: 13px; color: var(--vib-3); }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: var(--r-chip); background: var(--fill-2); box-shadow: inset 0 0 0 1px var(--ring); font-weight: 600; white-space: nowrap; }
+  .passos { margin: 8px 0 0; padding: 0; list-style: none; counter-reset: passo; display: grid; gap: 8px; }
+  .passos li { position: relative; padding-left: 38px; counter-increment: passo; }
+  .passos li::before {
+    content: counter(passo); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-family: var(--mono); font-size: 13px; font-weight: 600;
+  }
+  .cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 6px; }
+  .cartao { padding: 14px 16px; border-radius: var(--r-control); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); }
+  .cartao p { margin: 0; font-size: 13.5px; }
+  .colunas { margin: 6px 0 12px; padding-left: 18px; display: grid; gap: 6px; }
+  .colunas li::marker { color: var(--vib-3); }
+
+  /* ---- login ---- */
+  .login { min-height: calc(100vh - 84px); display: grid; place-items: center; }
+  .login-card { width: min(440px, 100%); padding: 30px 30px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .login-card .logo-img { height: 52px; margin: 0 auto 2px; }
+  .login-card .sub { text-align: center; max-width: none; margin-bottom: 4px; }
+  .login-card .abas { align-self: center; margin-bottom: 4px; }
+  .login-card input { height: 44px; }
+  .login-card .primario { height: 44px; margin-top: 4px; }
+  .login-card .link { align-self: center; }
+  .login-card .mini, .login-card .msg { margin: 0; font-size: 13px; color: var(--vib-2); }
+  .msg { padding: 10px 12px; border-radius: var(--r-inner); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); }
+  .msg.erro { color: #ff8a80; box-shadow: inset 0 0 0 1px rgba(255, 138, 128, .4); }
+
+  /* ---- conta no cabeçalho, viagens, admin ---- */
+  .direita { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .conta { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--vib-2); }
+  .viagens { margin: 0 0 12px; padding: 12px 18px; }
+  .viagens summary { cursor: pointer; font-weight: 600; color: var(--vib-1); list-style: none; display: flex; align-items: center; gap: 8px; }
+  .viagens summary::before { content: '\25B8'; color: var(--vib-3); transition: transform .15s var(--ease-out); }
+  .viagens[open] summary::before { transform: rotate(90deg); }
+  .viagens summary span { color: var(--vib-3); font-weight: 500; }
+  .viagem { display: grid; grid-template-columns: 110px 1fr auto auto; gap: 6px 16px; align-items: center; padding: 10px 0; border-top: 1px solid var(--divider); font-size: 13.5px; color: var(--vib-2); }
+  .viagem:first-child { margin-top: 10px; }
+  .viagem .quando { font-family: var(--mono); font-size: 12.5px; color: var(--vib-3); }
+  .viagem b { font-family: var(--mono); font-weight: 500; color: var(--vib-1); }
+  .viagem .itens { grid-column: 2 / -1; font-size: 12.5px; color: var(--vib-3); white-space: normal; }
+  .vazio-mini { margin: 10px 0 4px; font-size: 13.5px; color: var(--vib-3); }
+  .tabela-wrap.admin { margin-top: 12px; box-shadow: inset 0 0 0 1px var(--ring); background: var(--fill); backdrop-filter: none; }
+  .tabela-wrap.admin thead th { background: rgba(255, 255, 255, .04); backdrop-filter: none; }
+  .tabela-wrap.admin td { white-space: normal; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 640px) {
+    body { padding: 16px 16px 40px; }
+    h1 { font-size: 22px; }
+    .painel { padding: 18px 16px 16px; }
+    .tabela-wrap { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<div id="telaLogin" class="login" hidden>
+  <form id="formLogin" class="login-card mat-chrome" novalidate>
+    <img class="logo-img" src="assets/logo.png" alt="Albion Flip de BM" width="874" height="160">
+    <p class="sub">Compra na cidade, vende pro Black Market. Entre ou crie sua conta.</p>
+    <nav class="abas" id="loginAbas" aria-label="Entrar ou criar conta">
+      <button type="button" class="aba ativa" id="loginTituloEntrar">Entrar</button>
+      <button type="button" class="aba" id="loginTituloCriar">Criar conta</button>
+    </nav>
+    <div class="campo">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="email" placeholder="voce@email.com" required>
+    </div>
+    <div class="campo">
+      <label for="loginSenha" id="loginSenhaLabel">Senha</label>
+      <input id="loginSenha" type="password" autocomplete="current-password" placeholder="mínimo 8 caracteres" minlength="8" required>
+    </div>
+    <p class="mini" id="loginDica" hidden>Você recebe um email pra confirmar a conta. Depois é só entrar.</p>
+    <p class="msg" id="loginMsg" hidden></p>
+    <button type="submit" class="primario" id="loginBotao">Entrar</button>
+    <button type="button" class="link" id="loginEsqueci">Esqueci a senha</button>
+  </form>
+</div>
+
+<div id="app" class="wrap" hidden>
+  <header>
+    <div class="marca">
+      <h1><img class="logo-img" src="assets/logo.png" alt="Albion Flip de BM" width="874" height="160"></h1>
+      <p class="sub">Compra no mercado da cidade, vende pra ordem de compra do Black Market em Caerleon. Preços ao vivo da albion-online-data.</p>
+    </div>
+    <div class="direita">
+      <nav class="abas" aria-label="Seções">
+        <button type="button" class="aba ativa" data-aba="ferramenta">Ferramenta</button>
+        <button type="button" class="aba" data-aba="guia">Guia</button>
+        <button type="button" class="aba" data-aba="admin" id="abaBtnAdmin" hidden>Admin</button>
+      </nav>
+      <div class="conta" id="contaBox" hidden>
+        <span id="contaEmail"></span>
+        <button type="button" class="link" id="sair">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="abaFerramenta">
+  <section class="painel mat-chrome">
+    <div class="controles">
+      <div class="campo">
+        <label for="servidor">Servidor</label>
+        <select id="servidor">
+          <option value="west" selected>Americas (West)</option>
+          <option value="east">Asia (East)</option>
+          <option value="europe">Europe</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="cidade">Cidade onde vou comprar</label>
+        <select id="cidade"></select>
+      </div>
+      <div class="campo">
+        <label for="prata">Prata disponível <span class="ajuda" id="prataTxt"></span></label>
+        <input id="prata" type="number" min="0" step="1000000" value="6000000">
+      </div>
+      <div class="campo">
+        <label for="lucroMin">Lucro mín. / unidade</label>
+        <input id="lucroMin" type="number" min="0" step="10000" value="50000">
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Tier</span>
+        <div class="multi" id="tier"></div>
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Encantamento</span>
+        <div class="multi" id="ench"></div>
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Tipo de item</span>
+        <div class="multi" id="slot"></div>
+      </div>
+      <div class="campo">
+        <label for="idadeBm">Idade máx. preço BM</label>
+        <select id="idadeBm">
+          <option value="1">1 hora</option>
+          <option value="3">3 horas</option>
+          <option value="6" selected>6 horas</option>
+          <option value="12">12 horas</option>
+          <option value="24">24 horas</option>
+          <option value="0">Sem limite</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="idadeCid">Idade máx. preço cidade</label>
+        <select id="idadeCid">
+          <option value="1">1 hora</option>
+          <option value="3">3 horas</option>
+          <option value="6">6 horas</option>
+          <option value="12">12 horas</option>
+          <option value="24" selected>24 horas</option>
+          <option value="0">Sem limite</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="premium">Taxa de venda no BM</label>
+        <select id="premium">
+          <option value="premium" selected>Premium (4%)</option>
+          <option value="normal">Sem premium (8%)</option>
+        </select>
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Cidade sem preço</span>
+        <label class="toggle"><input id="estimar" type="checkbox" checked><span>Estimar</span></label>
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Qualidade</span>
+        <label class="toggle"><input id="cruzar" type="checkbox" checked><span>Cruzar qualidades</span></label>
+      </div>
+      <div class="campo">
+        <span class="grupo-label">Como comprar</span>
+        <label class="toggle"><input id="ordemCompra" type="checkbox"><span id="ordemCompraTxt">Na hora</span></label>
+      </div>
+      <div class="campo">
+        <label for="busca">Buscar item</label>
+        <input id="busca" type="search" placeholder="nome ou id">
+      </div>
+    </div>
+    <div class="acoes">
+      <button class="primario" id="atualizar">Atualizar preços</button>
+      <div class="barra" id="barra" hidden><i></i></div>
+      <span class="status" id="status">Escolha a cidade e clique em Atualizar.</span>
+    </div>
+  </section>
+
+  <div class="resumo" id="resumo" hidden>
+    <span><b id="rOportunidades">0</b> oportunidades</span>
+    <span><b id="rEstimadas">0</b> com custo estimado</span>
+    <span>cobertura: BM <b id="rCobBm">0</b> · cidade <b id="rCobCid">0</b> dos <b id="rItens">0</b> itens</span>
+    <span>atualizado às <b id="rHora">—</b></span>
+  </div>
+
+  <div class="cesta mat-card" id="cesta" hidden>
+    <span class="titulo">Cesta</span>
+    <span id="cestaTxt">vazia. Marque linhas ou monte pela melhor ROI.</span>
+    <span class="botoes">
+      <button type="button" class="secundario" id="montarPlano">Montar pela melhor ROI</button>
+      <button type="button" class="secundario" id="salvarViagem">Salvar viagem</button>
+      <button type="button" class="link" id="limparCesta">Limpar</button>
+    </span>
+  </div>
+
+  <details class="viagens mat-card" id="viagens" hidden>
+    <summary>Viagens salvas <span id="viagensQtd"></span></summary>
+    <div id="listaViagens"></div>
+  </details>
+
+  <div class="legenda" id="legenda" hidden>
+    <span class="c-custo">Custo: o que você paga na cidade</span>
+    <span class="c-est">Estimado: custo provável, sem preço atual</span>
+    <span class="c-bm">BM paga: ordem do Black Market</span>
+    <span class="c-liq">Líquido: BM paga menos a taxa</span>
+    <span class="c-lucro">Lucro e potencial: o que sobra</span>
+    <span class="c-roi">ROI: lucro sobre o custo</span>
+  </div>
+  <div class="tabela-wrap mat-card">
+    <table>
+      <thead>
+        <tr>
+          <th class="sel"></th>
+          <th>Item</th>
+          <th class="num ord c-custo" data-ord="custo" title="Menor ordem de venda atual na cidade">Custo<span class="seta"></span></th>
+          <th class="num ord c-est" data-ord="est" title="Estimativa quando a cidade não tem preço">Estimado<span class="seta"></span></th>
+          <th class="num ord c-bm" data-ord="bm" title="Maior ordem de compra do Black Market">BM paga<span class="seta"></span></th>
+          <th class="num ord c-liq" data-ord="liquido" title="BM paga menos a taxa de venda"><span id="liqTxt">Líquido</span><span class="seta"></span></th>
+          <th class="num ord c-lucro" data-ord="lucro" title="Líquido menos custo, por unidade">Lucro/un<span class="seta"></span></th>
+          <th class="num ord c-roi ativo desc" data-ord="roi" title="Lucro dividido pelo custo">ROI<span class="seta"></span></th>
+          <th class="num ord" data-ord="bm7" title="Preço médio pago pelo BM e vendas por dia, últimos 7 dias">BM 7d<span class="seta"></span></th>
+          <th class="num ord" data-ord="qtd" title="Quantidade sugerida: cabe na prata, limitada às vendas por dia">Levar<span class="seta"></span></th>
+          <th class="num ord c-lucro" data-ord="potencial" title="Lucro por unidade vezes quantidade">Potencial<span class="seta"></span></th>
+          <th class="ord" data-ord="idade" title="Idade do preço da cidade · idade do preço do BM">Idade<span class="seta"></span></th>
+        </tr>
+      </thead>
+      <tbody id="linhas"></tbody>
+    </table>
+    <div class="vazio" id="vazio">Nenhum dado carregado ainda.</div>
+  </div>
+  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; com "cruzar qualidades", uma ordem de qualidade menor aceita seu item de qualidade maior (confirme uma vez no jogo). BM 7 dias = preço médio a que o BM comprou e vendas por dia. Levar = quanto cabe na prata limitado pelas vendas por dia; sem volume conhecido, sugere 1. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
+  </div>
+
+  <div id="abaGuia" class="guia" hidden>
+    <section class="mat-card">
+      <h2>O que esta ferramenta faz</h2>
+      <p>O Black Market (BM) de Caerleon compra itens de jogadores. Muitas vezes ele paga mais do que o item custa no mercado de uma cidade real. A ferramenta cruza os dois preços e mostra o que vale a pena: <b>comprar na cidade, levar até Caerleon e vender pra ordem do BM</b>.</p>
+      <ol class="passos">
+        <li><b>Escaneie o BM no jogo</b> (ou use o que outros jogadores viram). É daí que vem "quanto o BM paga".</li>
+        <li><b>Escolha a cidade onde vai comprar</b> e quanta prata tem.</li>
+        <li><b>Clique em Atualizar preços</b>, leia a tabela e monte a cesta.</li>
+        <li><b>Confira no jogo antes de comprar</b>. A ferramenta aponta a oportunidade; o preço final é o que está na tela do jogo naquele momento.</li>
+      </ol>
+    </section>
+
+    <section class="mat-card destaque">
+      <h2>Dado fresco: instale o Albion Data Client</h2>
+      <p>A ferramenta só conhece preços que <b>alguém viu dentro do jogo</b> com o Albion Data Client ligado. Sem ele, você depende do que outros jogadores escanearam, e isso pode ter horas. Com ele rodando, cada tela de mercado que <b>você</b> abre vira dado novo em segundos, e a tabela passa a mostrar o BM exatamente como você acabou de ver. Isso é o que mais melhora o resultado.</p>
+      <ol class="passos">
+        <li>Baixe em <a href="https://github.com/ao-data/albiondata-client/releases" target="_blank" rel="noopener">github.com/ao-data/albiondata-client/releases</a> (arquivo <b class="chip">albiondata-client-amd64-installer.exe</b>).</li>
+        <li>Na instalação, aceite instalar o <b>Npcap</b> e marque <b class="chip">Install Npcap in WinPcap API-compatible Mode</b>. Sem isso o cliente não captura nada.</li>
+        <li>Abra o cliente antes de jogar (ele pede permissão de administrador e fica perto do relógio).</li>
+        <li>No jogo, abra o Black Market em Caerleon e passe pelas categorias que te interessam. Faça o mesmo no mercado da cidade onde vai comprar.</li>
+        <li>Aqui, coloque <b class="chip">Idade máx. preço BM</b> em 1 hora e clique em Atualizar. O que você acabou de escanear aparece com idade de minutos.</li>
+      </ol>
+      <p class="mini">O cliente só lê o tráfego do jogo, não altera nada, e o projeto é tolerado publicamente pela Sandbox. Ele detecta sozinho seu servidor (Americas, Europe ou Asia).</p>
+    </section>
+
+    <section class="mat-card">
+      <h2>Cada controle do painel</h2>
+      <div class="cartoes">
+        <div class="cartao"><h3>Servidor</h3><p>O servidor em que você joga. Tem que ser o mesmo do jogo, senão os preços são de outro mundo.</p></div>
+        <div class="cartao"><h3>Cidade onde vou comprar</h3><p>A cidade real onde você vai comprar os itens. O BM é sempre o destino da venda. "Todas as cidades" mostra uma linha por cidade, pra decidir pra onde ir.</p></div>
+        <div class="cartao"><h3>Prata disponível</h3><p>Quanto você pode investir. Limita o que aparece e define quantas unidades cabem. Sobe de 1 milhão em 1 milhão nas setinhas.</p></div>
+        <div class="cartao"><h3>Lucro mín. / unidade</h3><p>Esconde item com lucro pequeno por unidade. Em item barato, olhe o ROI junto: 20 mil de lucro em 100 mil de custo é melhor que 50 mil em 600 mil.</p></div>
+        <div class="cartao"><h3>Tier, Encantamento, Tipo</h3><p>Filtram o catálogo. Cada lista tem caixinhas: marque um ou vários. "Todos" marca tudo. Menos itens marcados = busca mais rápida.</p></div>
+        <div class="cartao"><h3>Idade máx. preço BM / cidade</h3><p>Descarta preço velho. São separados de propósito: quem escaneia o BM aperta a idade do BM (1 hora) e afrouxa a da cidade, que vem de outros jogadores.</p></div>
+        <div class="cartao"><h3>Taxa de venda no BM</h3><p>4% com premium, 8% sem. Entra no cálculo do líquido e, portanto, do lucro e do ROI.</p></div>
+        <div class="cartao"><h3>Cidade sem preço: Estimar</h3><p>Quando a cidade não tem preço registrado, a ferramenta estima pelo menor preço de outra cidade real ou pela média de vendas de 30 dias. É pista pra ir conferir, não pra comprar às cegas.</p></div>
+        <div class="cartao"><h3>Cruzar qualidades</h3><p>Uma ordem de compra aceita item da qualidade pedida ou melhor. Ligado, a ferramenta vende seu item Bom numa ordem Normal se ela paga mais. Confirme uma vez no jogo.</p></div>
+        <div class="cartao"><h3>Como comprar</h3><p>"Na hora" usa a menor ordem de venda. "Por ordem de compra" simula você colocando ordem abaixo do preço: mais barato, mas só rende se preencher.</p></div>
+        <div class="cartao"><h3>Buscar item</h3><p>Filtra a tabela pelo nome ou pelo código do item, sem nova busca.</p></div>
+        <div class="cartao"><h3>Atualizar preços</h3><p>Busca os preços na API. Mudou servidor, cidade, tier, encantamento, tipo, qualidade ou modo de compra: clique de novo. Os outros filtros aplicam na hora.</p></div>
+      </div>
+    </section>
+
+    <section class="mat-card">
+      <h2>Lendo a tabela</h2>
+      <p>Cada linha é um item numa qualidade. As cores dizem o que cada número é:</p>
+      <ul class="colunas">
+        <li><b class="c-custo">Custo</b>: o que você paga na cidade agora (menor ordem de venda). Embaixo, onde há registro do item mais barato entre as 7 cidades.</li>
+        <li><b class="c-est">Estimado</b>: custo provável quando a cidade não tem preço, com a origem da estimativa.</li>
+        <li><b class="c-bm">BM paga</b>: a ordem de compra do Black Market. "ordem Normal" embaixo significa que seu item de qualidade maior vai nessa ordem.</li>
+        <li><b class="c-liq">Líquido</b>: BM paga menos a taxa de venda.</li>
+        <li><b class="c-lucro">Lucro/un</b>: líquido menos custo, por unidade.</li>
+        <li><b class="c-roi">ROI</b>: lucro dividido pelo custo. Quanto cada prata investida rende. É a coluna mais importante quando a prata é limitada.</li>
+        <li><b>BM 7d</b>: preço médio a que o BM comprou esse item nos últimos 7 dias e quantas vendas por dia. Diz se a ordem atual está alta ou baixa e quantas unidades o BM costuma absorver.</li>
+        <li><b>Levar</b>: quantidade sugerida: cabe na prata, limitada pelas vendas por dia. Sem volume conhecido, 1, porque a API não mostra a quantidade da ordem. Você pode digitar outra.</li>
+        <li><b class="c-lucro">Potencial</b>: lucro por unidade vezes a quantidade.</li>
+        <li><b>Idade</b>: há quanto tempo cada preço foi visto (cidade · BM). ⚠ marca acima de 6 horas.</li>
+      </ul>
+      <p>Clique no título de uma coluna pra ordenar por ela (maior primeiro). Clique de novo pra inverter.</p>
+    </section>
+
+    <section class="mat-card">
+      <h2>Cesta: o plano da viagem</h2>
+      <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem.</p>
+      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI e respeitando quantas unidades o BM compra por dia de cada item. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
+    </section>
+
+    <section class="mat-card">
+      <h2>Cuidados</h2>
+      <ul class="colunas">
+        <li>A API não informa a quantidade da ordem do BM. Confira no jogo antes de comprar em lote.</li>
+        <li>Preço velho pode já ter ido. Olhe a idade, e escaneie você mesmo sempre que puder.</li>
+        <li>Estimativa é pra ir conferir. Não some estimativa como se fosse lucro certo.</li>
+        <li>O preço da ordem do BM sobe com o tempo até alguém vender e cai depois. Uma ordem bem acima da média de 7 dias é pico: vende logo.</li>
+        <li>O caminho até Caerleon passa por zonas perigosas. A prata em risco na cesta é o que você perde se morrer na estrada.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div id="abaAdmin" class="guia" hidden>
+    <section class="mat-card">
+      <h2>Contas <span class="mini" id="usuariosQtd"></span></h2>
+      <p>Quem se cadastrou, quando entrou pela última vez e se está bloqueado. Bloquear impede de entrar e de salvar qualquer coisa.</p>
+      <div class="tabela-wrap admin" id="usuarios"></div>
+    </section>
+  </div>
+</div>
+<script src="config.js"></script>
+<script type="module" src="conta.js"></script>
+
+<script src="items.js"></script>
+<script>
+(() => {
+  const SERVIDORES = {
+    west: 'https://west.albion-online-data.com',
+    east: 'https://east.albion-online-data.com',
+    europe: 'https://europe.albion-online-data.com',
+  };
+  // Nome exibido (igual ao campo city da API) -> nome aceito na query.
+  const CIDADES = {
+    'Bridgewatch': 'Bridgewatch', 'Martlock': 'Martlock', 'Thetford': 'Thetford', 'Fort Sterling': 'FortSterling',
+    'Lymhurst': 'Lymhurst', 'Caerleon': 'Caerleon', 'Brecilien': 'Brecilien',
+  };
+  const TODAS = 'todas';
+  const TODAS_CIDADES_API = Object.values(CIDADES).join(',');
+  const TIERS = [4, 5, 6, 7, 8];
+  const ENCHS = [0, 1, 2, 3, 4];
+  const SLOTS = ['Arma', 'Off-hand', 'Capacete', 'Armadura', 'Botas', 'Capa', 'Bolsa'];
+  const QUALIDADE = { 1: 'Normal', 2: 'Bom', 3: 'Excepcional', 4: 'Excelente', 5: 'Obra-prima' };
+  const TAXA_VENDA = { premium: 0.04, normal: 0.08 };
+  const TAXA_ORDEM = 0.025;   // taxa de criação de ordem de compra
+  const PISO_ORDEM = 0.7;     // ordem de compra abaixo de 70% do preço de venda não preenche; é o mínimo que vale colocar
+  const LIMITE_URL = 4000;    // a API corta em 4096
+  const CONCORRENCIA = 6;     // limite da API: 180 req/min
+  const MAX_LINHAS = 300;
+  const DIAS_BM = 7;
+  const DIAS_HISTORICO = 30;
+  const CHAVE_FILTROS = 'flipbm.filtros';
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    servidor: $('servidor'), cidade: $('cidade'), prata: $('prata'), prataTxt: $('prataTxt'), lucroMin: $('lucroMin'),
+    tier: $('tier'), ench: $('ench'), slot: $('slot'), idadeBm: $('idadeBm'), idadeCid: $('idadeCid'),
+    premium: $('premium'), liqTxt: $('liqTxt'), estimar: $('estimar'), cruzar: $('cruzar'),
+    ordemCompra: $('ordemCompra'), ordemCompraTxt: $('ordemCompraTxt'), busca: $('busca'), atualizar: $('atualizar'),
+    barra: $('barra'), status: $('status'), resumo: $('resumo'), rOportunidades: $('rOportunidades'), rEstimadas: $('rEstimadas'),
+    rCobBm: $('rCobBm'), rCobCid: $('rCobCid'), rItens: $('rItens'), rHora: $('rHora'),
+    cesta: $('cesta'), cestaTxt: $('cestaTxt'), montarPlano: $('montarPlano'), limparCesta: $('limparCesta'),
+    linhas: $('linhas'), vazio: $('vazio'),
+  };
+  const fmt = new Intl.NumberFormat('pt-BR');
+  const catalogo = new Map(window.ALBION_ITEMS.map(([id, nome, tier, ench, slot]) => [id, { id, nome, tier, ench, slot }]));
+
+  // Estado em memória: só o último resultado da API. Dado de mercado nunca persiste.
+  let pares = [];              // uma linha por (item, qualidade, cidade) com preço nos dois lados
+  let cobertura = { bm: 0, cid: 0, itens: 0 };
+  let selCarregada = null;     // seleção de tier/encantamento/tipo usada na última busca
+  let ordem = 'roi';
+  let direcao = 'desc';        // clicar na coluna ativa inverte; idade começa crescente (mais novo primeiro)
+  let carregando = false;
+  const cesta = new Set();     // chaves das linhas marcadas
+  const qtdEditada = new Map(); // chave -> quantidade digitada pelo usuário
+  let visiveis = new Map();    // chave -> linha renderizada (com lucro calculado)
+
+  for (const nome of Object.keys(CIDADES)) {
+    const o = document.createElement('option');
+    o.value = nome; o.textContent = nome;
+    el.cidade.appendChild(o);
+  }
+  const oTodas = document.createElement('option');
+  oTodas.value = TODAS; oTodas.textContent = 'Todas as cidades';
+  el.cidade.appendChild(oTodas);
+  el.cidade.value = 'Fort Sterling';
+
+  // Dropdown de múltipla escolha com caixinha em cada opção. "Todos" marca e desmarca tudo.
+  function criarMulti(raiz, opcoes, iniciais) {
+    raiz.innerHTML = `<button type="button" class="multi-btn" aria-haspopup="listbox" aria-expanded="false"><span class="multi-txt"></span><span class="multi-seta">&#9662;</span></button>
+      <div class="multi-menu mat-float" role="listbox" hidden>
+        <label class="multi-op todos"><input type="checkbox" class="caixa" value="__todos"><span>Todos</span></label>
+        ${opcoes.map((o) => `<label class="multi-op"><input type="checkbox" class="caixa" value="${o.valor}"><span>${o.rotulo}</span></label>`).join('')}
+      </div>`;
+    const btn = raiz.querySelector('.multi-btn');
+    const txt = raiz.querySelector('.multi-txt');
+    const menu = raiz.querySelector('.multi-menu');
+    const todos = menu.querySelector('input[value="__todos"]');
+    const caixas = [...menu.querySelectorAll('input')].filter((c) => c !== todos);
+    const rotulo = (c) => opcoes.find((o) => String(o.valor) === c.value).rotulo;
+    function atualizarTxt() {
+      const marcadas = caixas.filter((c) => c.checked);
+      todos.checked = marcadas.length === caixas.length;
+      txt.textContent = todos.checked ? 'Todos' : marcadas.length ? marcadas.map(rotulo).join(', ') : 'Nenhum';
+    }
+    function abrir(v) { menu.hidden = !v; raiz.classList.toggle('aberto', v); btn.setAttribute('aria-expanded', String(v)); }
+    btn.addEventListener('click', () => abrir(menu.hidden));
+    menu.addEventListener('change', (ev) => {
+      ev.stopPropagation();
+      if (ev.target === todos) caixas.forEach((c) => { c.checked = todos.checked; });
+      atualizarTxt();
+      raiz.dispatchEvent(new Event('change'));
+    });
+    document.addEventListener('click', (ev) => { if (!raiz.contains(ev.target)) abrir(false); });
+    raiz.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { abrir(false); btn.focus(); } });
+    const api = {
+      get: () => caixas.filter((c) => c.checked).map((c) => c.value),
+      set: (valores) => { const s = new Set(valores.map(String)); caixas.forEach((c) => { c.checked = s.has(c.value); }); atualizarTxt(); },
+    };
+    api.set(iniciais);
+    return api;
+  }
+  const multi = {
+    tier: criarMulti(el.tier, TIERS.map((t) => ({ valor: t, rotulo: `T${t}` })), [5]),
+    ench: criarMulti(el.ench, ENCHS.map((e) => ({ valor: e, rotulo: `.${e}` })), [3]),
+    slot: criarMulti(el.slot, SLOTS.map((s) => ({ valor: s, rotulo: s })), ['Arma']),
+  };
+
+  // ---- filtros lembrados entre aberturas (conveniência local; só os controles, nunca preços) ----
+  const CAMPOS_SALVOS = ['servidor', 'cidade', 'prata', 'lucroMin', 'idadeBm', 'idadeCid', 'premium', 'estimar', 'cruzar', 'ordemCompra'];
+  function filtrosAtuais() {
+    const v = {};
+    for (const id of CAMPOS_SALVOS) v[id] = el[id].type === 'checkbox' ? el[id].checked : el[id].value;
+    for (const k of Object.keys(multi)) v[k] = multi[k].get();
+    return v;
+  }
+  function salvarFiltros() {
+    const v = filtrosAtuais();
+    try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(v)); } catch { /* sem storage (aba privada etc.): segue sem lembrar */ }
+    window.Conta?.salvarFiltros(v); // na conta, quando logado
+  }
+  // Aplica um conjunto de filtros (do localStorage ou da conta). Valor inválido fica no padrão.
+  function restaurarFiltros(origem) {
+    try {
+      const v = origem || JSON.parse(localStorage.getItem(CHAVE_FILTROS) || 'null');
+      if (!v) return;
+      for (const id of CAMPOS_SALVOS) {
+        if (!(id in v)) continue;
+        const campo = el[id];
+        if (campo.type === 'checkbox') campo.checked = !!v[id];
+        else if (campo.tagName === 'SELECT' && ![...campo.options].some((o) => o.value === String(v[id]))) continue;
+        else campo.value = v[id];
+      }
+      for (const k of Object.keys(multi)) if (Array.isArray(v[k])) multi[k].set(v[k]);
+    } catch { /* valor corrompido: fica o padrão */ }
+  }
+
+  function selecao() {
+    return { tiers: multi.tier.get().map(Number), enchs: multi.ench.get().map(Number), slots: multi.slot.get() };
+  }
+  const passaSelecao = (item, s) => s.tiers.includes(item.tier) && s.enchs.includes(item.ench) && s.slots.includes(item.slot);
+  const contida = (a, b) => ['tiers', 'enchs', 'slots'].every((k) => a[k].every((v) => b[k].includes(v)));
+  // Taxa de venda cobrada ao vender pra ordem do BM: 4% com premium, 8% sem. Entra no líquido e, portanto, no lucro e no ROI.
+  const taxaAtual = () => TAXA_VENDA[el.premium.value] ?? TAXA_VENDA.premium;
+  const prataAtual = () => Number(el.prata.value) || 0;
+
+  function montarLotes(ids, prefixo, sufixo) {
+    const urls = [];
+    let lote = [];
+    let tamanho = prefixo.length + sufixo.length;
+    for (const id of ids) {
+      if (tamanho + id.length + 1 > LIMITE_URL) {
+        urls.push(prefixo + lote.join(',') + sufixo);
+        lote = []; tamanho = prefixo.length + sufixo.length;
+      }
+      lote.push(id); tamanho += id.length + 1;
+    }
+    if (lote.length) urls.push(prefixo + lote.join(',') + sufixo);
+    return urls;
+  }
+
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function buscar(url, tentativa = 0) {
+    const r = await fetch(url);
+    if (r.status === 429 && tentativa < 2) { await esperar(5000 * (tentativa + 1)); return buscar(url, tentativa + 1); }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  // Baixa os lotes com concorrência limitada, entrega cada resposta a `tratar` e devolve quantos falharam.
+  async function buscarLotes(urls, tratar, rotulo) {
+    let feitos = 0, falhas = 0;
+    const fila = urls.slice();
+    setStatus(`${rotulo}… 0/${urls.length} lotes`);
+    const consumir = async () => {
+      while (fila.length) {
+        const url = fila.shift();
+        try { tratar(await buscar(url)); } catch (err) { falhas++; console.error('Falha no lote', err.message, url.slice(0, 120)); }
+        feitos++;
+        el.barra.firstElementChild.style.width = `${Math.round((feitos / urls.length) * 100)}%`;
+        setStatus(`${rotulo}… ${feitos}/${urls.length} lotes`);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, fila.length) }, consumir));
+    return falhas;
+  }
+
+  // Média ponderada pela quantidade e data da última venda de uma série do endpoint history.
+  function resumirHistorico(pontos) {
+    const validos = pontos.filter((p) => p.item_count > 0 && p.avg_price > 0).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    if (!validos.length) return null;
+    const qtd = validos.reduce((a, p) => a + p.item_count, 0);
+    const media = validos.reduce((a, p) => a + p.avg_price * p.item_count, 0) / qtd;
+    return { media: Math.round(media), qtd, d: validos[validos.length - 1].timestamp };
+  }
+
+  // Melhor ordem do BM pra um item de qualidade `q`. Uma ordem de compra aceita item da qualidade pedida ou melhor.
+  function melhorOrdemBm(bmPorQ, q, cruzar) {
+    let melhor = null;
+    for (let qBm = cruzar ? 1 : q; qBm <= q; qBm++) {
+      const o = bmPorQ[qBm];
+      if (o && (!melhor || o.p > melhor.p)) melhor = { p: o.p, d: o.d, q: qBm };
+    }
+    return melhor;
+  }
+
+  async function atualizar() {
+    if (carregando) return;
+    const sel = selecao();
+    if (!sel.tiers.length || !sel.enchs.length || !sel.slots.length) {
+      setStatus('Marque ao menos um tier, um encantamento e um tipo de item.', true);
+      return;
+    }
+    carregando = true;
+    el.atualizar.disabled = true;
+    el.barra.hidden = false;
+    el.barra.firstElementChild.style.width = '0%';
+
+    const base = SERVIDORES[el.servidor.value];
+    const cidadeSel = el.cidade.value;
+    const modoTodas = cidadeSel === TODAS;
+    const porOrdem = el.ordemCompra.checked;
+    const ids = [...catalogo.values()].filter((i) => passaSelecao(i, sel)).map((i) => i.id);
+    const dados = new Map(); // id -> { bm: {q: {p,d}}, cid: {cidade: {q: {venda, compra}}}, volBm: {q: {media, porDia, d}}, histCid: {q: {p, d}} }
+    const entrada = (id) => dados.get(id) || (dados.set(id, {}), dados.get(id));
+    const hoje = new Date();
+    const data = (d) => d.toISOString().slice(0, 10);
+
+    // Passo 1: preço atual no BM e nas 7 cidades reais (cidade escolhida + fontes de estimativa), ordens de venda e de compra.
+    // No Black Market o que interessa é buy_price_max (ordem de compra do BM). O campo sell_price_min quase nunca vem
+    // preenchido lá e, quando vem, é mais velho: medido em 2026-09 (413 linhas só com buy, 6 só com sell).
+    const urlsPrecos = montarLotes(ids, `${base}/api/v2/stats/prices/`, `.json?locations=BlackMarket,${TODAS_CIDADES_API}`);
+    let falhas = await buscarLotes(urlsPrecos, (rows) => {
+      for (const row of rows) {
+        const e = entrada(row.item_id);
+        const q = row.quality;
+        if (row.city === 'Black Market') {
+          if (row.buy_price_max > 0) (e.bm ||= {})[q] = { p: row.buy_price_max, d: row.buy_price_max_date };
+        } else {
+          const oferta = ((e.cid ||= {})[row.city] ||= {})[q] ||= {};
+          if (row.sell_price_min > 0) oferta.venda = { p: row.sell_price_min, d: row.sell_price_min_date };
+          if (row.buy_price_max > 0) oferta.compra = { p: row.buy_price_max, d: row.buy_price_max_date };
+        }
+      }
+    }, 'Buscando preços');
+
+    // Passo 2: o que o BM de fato comprou nos últimos 7 dias (preço médio e vendas por dia) — limita quanto levar.
+    const idsComBm = ids.filter((id) => dados.get(id)?.bm);
+    if (idsComBm.length) {
+      const inicio = new Date(hoje.getTime() - DIAS_BM * 864e5);
+      const urlsBm = montarLotes(idsComBm, `${base}/api/v2/stats/history/`, `.json?locations=BlackMarket&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`);
+      falhas += await buscarLotes(urlsBm, (entradas) => {
+        for (const h of entradas) {
+          const r = resumirHistorico(h.data);
+          if (r) (entrada(h.item_id).volBm ||= {})[h.quality] = { media: r.media, porDia: r.qtd / DIAS_BM, d: r.d };
+        }
+      }, 'Buscando volume do BM');
+    }
+
+    // Passo 3: quem tem ordem no BM mas nenhum preço atual em cidade nenhuma recebe a média de vendas da cidade em 30 dias.
+    const temVenda = (e, cidade) => Object.values(e.cid?.[cidade] || {}).some((o) => o.venda);
+    if (!modoTodas && !porOrdem) {
+      const semPreco = idsComBm.filter((id) => { const e = dados.get(id); return !Object.keys(CIDADES).some((c) => temVenda(e, c)); });
+      if (semPreco.length) {
+        const inicio = new Date(hoje.getTime() - DIAS_HISTORICO * 864e5);
+        const urlsHist = montarLotes(semPreco, `${base}/api/v2/stats/history/`, `.json?locations=${CIDADES[cidadeSel]}&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`);
+        falhas += await buscarLotes(urlsHist, (entradas) => {
+          for (const h of entradas) {
+            const r = resumirHistorico(h.data);
+            if (r) (entrada(h.item_id).histCid ||= {})[h.quality] = { p: r.media, d: r.d };
+          }
+        }, 'Buscando histórico da cidade');
+      }
+    }
+
+    // Monta as linhas: uma por (item, qualidade, cidade) com custo (atual ou estimado) e melhor ordem do BM.
+    const cruzar = el.cruzar.checked;
+    const cidadesAlvo = modoTodas ? Object.keys(CIDADES) : [cidadeSel];
+    pares = [];
+    for (const id of ids) {
+      const e = dados.get(id);
+      if (!e?.bm) continue;
+      const item = catalogo.get(id);
+      for (const cidade of cidadesAlvo) {
+        const porQ = e.cid?.[cidade] || {};
+        for (let q = 1; q <= 5; q++) {
+          const oferta = porQ[q];
+          // Onde há registro desse item mais barato, contando todas as cidades reais.
+          let maisBarato = null;
+          for (const [c, pq] of Object.entries(e.cid || {})) {
+            const v = pq[q]?.venda;
+            if (v && (!maisBarato || v.p < maisBarato.p)) maisBarato = { cidade: c, p: v.p };
+          }
+          let real = null, est = null;
+          if (porOrdem) {
+            // Preço da ordem que você colocaria: acima da maior ordem atual, mas nunca abaixo do piso em relação ao preço de venda
+            // (ordem de 26 de prata num item de 300 mil existe na API e nunca preenche). Sem venda na cidade, usa a mais barata
+            // registrada em qualquer cidade como referência. Mais a taxa de criação.
+            if (oferta?.compra) {
+              const referencia = oferta.venda?.p ?? maisBarato?.p ?? 0;
+              real = { p: Math.ceil(Math.max(oferta.compra.p + 1, Math.ceil(referencia * PISO_ORDEM)) * (1 + TAXA_ORDEM)), d: oferta.compra.d };
+            }
+          } else {
+            if (oferta?.venda) real = oferta.venda;
+            if (!modoTodas) {
+              let outra = null;
+              for (const [c, pq] of Object.entries(e.cid || {})) {
+                if (c === cidade) continue;
+                const v = pq[q]?.venda;
+                if (v && (!outra || v.p < outra.p)) outra = { p: v.p, d: v.d, cidade: c };
+              }
+              if (outra) est = { p: outra.p, d: outra.d, txt: `menor preço em ${outra.cidade}` };
+              else if (e.histCid?.[q]) est = { p: e.histCid[q].p, d: e.histCid[q].d, txt: `média de vendas ${DIAS_HISTORICO}d` };
+            }
+          }
+          if (!real && !est) continue;
+          const bm = melhorOrdemBm(e.bm, q, cruzar);
+          if (!bm) continue;
+          const usado = real || est;
+          const vol = e.volBm?.[bm.q] || e.volBm?.[q] || null;
+          pares.push({
+            chave: `${id}|${q}|${cidade}`, item, q, cidade, real: real ? real.p : null, est, maisBarato,
+            custo: usado.p, custoData: Date.parse(usado.d + 'Z'), fonte: real ? 'real' : 'est',
+            bm: bm.p, bmQ: bm.q, bmData: Date.parse(bm.d + 'Z'),
+            volDia: vol ? vol.porDia : null, bmMedia: vol ? vol.media : null,
+          });
+        }
+      }
+    }
+    cobertura = {
+      itens: ids.length,
+      bm: idsComBm.length,
+      cid: ids.filter((id) => { const e = dados.get(id); if (!e?.cid) return false; return cidadesAlvo.some((c) => Object.values(e.cid[c] || {}).some((o) => (porOrdem ? o.compra : o.venda))); }).length,
+    };
+    selCarregada = sel;
+    for (const k of cesta) if (!pares.some((p) => p.chave === k)) cesta.delete(k);
+
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    el.rHora.textContent = hora;
+    el.rItens.textContent = fmt.format(cobertura.itens);
+    el.rCobBm.textContent = fmt.format(cobertura.bm);
+    el.rCobCid.textContent = fmt.format(cobertura.cid);
+    el.resumo.hidden = false;
+    el.cesta.hidden = false;
+    $('legenda').hidden = false;
+    const origem = modoTodas ? 'Todas as cidades' : cidadeSel;
+    setStatus(falhas ? `${falhas} lotes falharam (limite da API?). Tente de novo em 1 min.` : `${origem} → Black Market · ${porOrdem ? 'compra por ordem' : 'compra na hora'} · ${hora}`, falhas > 0);
+    el.barra.hidden = true;
+    el.atualizar.disabled = false;
+    carregando = false;
+    render();
+  }
+
+  function setStatus(msg, erro = false) {
+    el.status.textContent = msg;
+    el.status.classList.toggle('erro', erro);
+  }
+
+  function idadeTxt(ms) {
+    const min = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    if (min < 60) return `${min}min`;
+    if (min < 48 * 60) return `${Math.round(min / 60)}h`;
+    return `${Math.round(min / 1440)}d`;
+  }
+
+  function calcular(p, taxa) {
+    const liquido = Math.floor(p.bm * (1 - taxa));
+    const lucro = liquido - p.custo;
+    return { liquido, lucro, roi: lucro / p.custo, idade: Date.now() - Math.min(p.custoData, p.bmData) };
+  }
+
+  // Quanto levar: o que cabe na prata, limitado pelas vendas por dia do BM. Sem volume conhecido, 1 (a API não mostra a quantidade da ordem).
+  function sugerirQtd(p, prata) {
+    const cabe = prata ? Math.floor(prata / p.custo) : Infinity;
+    const teto = p.volDia !== null ? Math.max(1, Math.round(p.volDia)) : 1;
+    const n = Math.min(cabe, teto);
+    return Number.isFinite(n) ? n : teto;
+  }
+  const qtdDe = (p, prata) => (qtdEditada.has(p.chave) ? qtdEditada.get(p.chave) : sugerirQtd(p, prata));
+
+  function filtrar({ semIdade = false, semLucro = false, semPrata = false, comEstimativa = false } = {}) {
+    const taxa = taxaAtual();
+    const prata = prataAtual();
+    const lucroMin = Number(el.lucroMin.value) || 0;
+    const idadeBmMs = Number(el.idadeBm.value) * 3600000;
+    const idadeCidMs = Number(el.idadeCid.value) * 3600000;
+    const estimar = el.estimar.checked;
+    const agoraMs = Date.now();
+    const busca = el.busca.value.trim().toLowerCase();
+    const sel = selecao();
+    const out = [];
+    for (const p of pares) {
+      if (!passaSelecao(p.item, sel)) continue;
+      if (!estimar && !comEstimativa && p.fonte !== 'real') continue;
+      if (busca && !p.item.nome.toLowerCase().includes(busca) && !p.item.id.toLowerCase().includes(busca)) continue;
+      const c = calcular(p, taxa);
+      if (c.lucro < (semLucro ? 1 : lucroMin)) continue;
+      if (!semIdade && idadeBmMs && agoraMs - p.bmData > idadeBmMs) continue;
+      if (!semIdade && idadeCidMs && agoraMs - p.custoData > idadeCidMs) continue;
+      if (!semPrata && prata && p.custo > prata) continue;
+      const qtd = qtdDe(p, prata);
+      out.push({ ...p, ...c, qtd, potencial: qtd * c.lucro });
+    }
+    return out;
+  }
+
+  // Plano de compra: gasta a prata começando pelo maior ROI, respeitando quanto o BM compra por dia de cada item.
+  // Assim 10 itens de 500k com 70k de lucro ganham de 3 itens de 1,5M com 150k, e a prata em risco rende mais.
+  function montarPlano(linhas, prata) {
+    const plano = new Map();
+    if (!prata) return plano;
+    let resta = prata;
+    for (const l of linhas.slice().sort((a, b) => b.roi - a.roi)) {
+      if (l.lucro <= 0 || resta < l.custo) continue;
+      const n = Math.min(sugerirQtd(l, resta), Math.floor(resta / l.custo));
+      if (n <= 0) continue;
+      plano.set(l.chave, n);
+      resta -= n * l.custo;
+    }
+    return plano;
+  }
+
+  function renderCesta() {
+    const taxa = taxaAtual(), prata = prataAtual();
+    let itens = 0, estimados = 0, unidades = 0, investe = 0, lucro = 0;
+    for (const p of pares) {
+      if (!cesta.has(p.chave)) continue;
+      const n = qtdDe(p, prata);
+      if (n <= 0) continue;
+      itens++; unidades += n; investe += n * p.custo; lucro += n * calcular(p, taxa).lucro;
+      if (p.fonte !== 'real') estimados++;
+    }
+    el.cestaTxt.innerHTML = itens
+      ? `<b>${itens}</b> itens${estimados ? ` (<b>${estimados}</b> com custo estimado)` : ''} · <b>${fmt.format(unidades)}</b> unidades · investe <b>${fmt.format(investe)}</b> (prata em risco) · lucro esperado <b>${fmt.format(lucro)}</b> · ROI da viagem <b>${investe ? (lucro / investe * 100).toFixed(0) : 0}%</b>${prata && investe > prata ? ' · <b>passa da prata disponível</b>' : ''}`
+      : 'vazia. Marque linhas ou monte pela melhor ROI.';
+    for (const tr of el.linhas.querySelectorAll('tr[data-chave]')) tr.classList.toggle('na-cesta', cesta.has(tr.dataset.chave));
+  }
+
+  function render() {
+    const prata = prataAtual();
+    const estimar = el.estimar.checked;
+    el.prataTxt.textContent = prata ? fmt.format(prata) : '';
+    el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
+
+    const linhas = filtrar();
+    // Valor de cada coluna ordenável; null (sem dado) vai sempre pro fim.
+    const valor = {
+      custo: (l) => l.custo, est: (l) => (l.est ? l.est.p : null), bm: (l) => l.bm, liquido: (l) => l.liquido,
+      lucro: (l) => l.lucro, roi: (l) => l.roi, bm7: (l) => l.bmMedia, qtd: (l) => l.qtd, potencial: (l) => l.potencial, idade: (l) => l.idade,
+    }[ordem];
+    linhas.sort((a, b) => {
+      const va = valor(a), vb = valor(b);
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return direcao === 'desc' ? vb - va : va - vb;
+    });
+    visiveis = new Map(linhas.map((l) => [l.chave, l]));
+
+    el.rOportunidades.textContent = fmt.format(linhas.length);
+    el.rEstimadas.textContent = fmt.format(linhas.filter((l) => l.fonte !== 'real').length);
+    el.vazio.hidden = linhas.length > 0;
+    if (!pares.length) {
+      el.vazio.textContent = 'Nenhum dado carregado ainda.';
+    } else if (!linhas.length) {
+      // Diz qual filtro está travando, pra não parecer que a API não respondeu.
+      const partes = [
+        `Sem limite de idade: ${fmt.format(filtrar({ semIdade: true }).length)}.`,
+        `Com lucro mínimo 1: ${fmt.format(filtrar({ semLucro: true }).length)}.`,
+      ];
+      if (prata) partes.push(`Ignorando a prata disponível: ${fmt.format(filtrar({ semPrata: true }).length)}.`);
+      if (!estimar) partes.push(`Com estimativas: ${fmt.format(filtrar({ comEstimativa: true }).length)}.`);
+      partes.push(`Liberando tudo isso junto: ${fmt.format(filtrar({ semIdade: true, semLucro: true, semPrata: true, comEstimativa: true }).length)}.`);
+      el.vazio.textContent = `Nenhuma oportunidade com esses filtros. ${partes.join(' ')}`;
+    }
+
+    const seisHoras = 6 * 3600000;
+    const agoraMs = Date.now();
+    const modoTodas = el.cidade.value === TODAS;
+    el.linhas.innerHTML = linhas.slice(0, MAX_LINHAS).map((l) => {
+      const velhoCid = agoraMs - l.custoData > seisHoras ? ' velho' : '';
+      const velhoBm = agoraMs - l.bmData > seisHoras ? ' velho' : '';
+      const ench = l.item.ench ? `.${l.item.ench}` : '';
+      const volTxt = l.volDia === null ? '' : `${l.volDia < 10 ? l.volDia.toFixed(1) : Math.round(l.volDia)}/dia`;
+      return `<tr data-chave="${l.chave}"${cesta.has(l.chave) ? ' class="na-cesta"' : ''}>
+        <td class="sel"><input type="checkbox" class="caixa cesta-cb" data-chave="${l.chave}"${cesta.has(l.chave) ? ' checked' : ''} aria-label="Marcar pra cesta"></td>
+        <td><div class="item">
+          <img loading="lazy" src="https://render.albiononline.com/v1/item/${l.item.id}.png?quality=${l.q}&size=40" alt="">
+          <div><div class="nome">${escapar(l.item.nome)}</div><div class="meta"><span class="tier">T${l.item.tier}${ench}</span> · ${l.item.slot} · <span class="${l.q > 1 ? 'qual' : ''}">${QUALIDADE[l.q]}</span>${modoTodas ? ` · ${l.cidade}` : ''}</div></div>
+        </div></td>
+        <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
+        <td class="num c-est">${l.est ? `${fmt.format(l.est.p)}<br><span class="badge-est">${escapar(l.est.txt)}</span>` : '—'}</td>
+        <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">ordem ${QUALIDADE[l.bmQ]}</span>` : ''}</td>
+        <td class="num c-liq">${fmt.format(l.liquido)}</td>
+        <td class="num c-lucro">+${fmt.format(l.lucro)}</td>
+        <td class="num c-roi">${(l.roi * 100).toFixed(0)}%</td>
+        <td class="num">${l.bmMedia === null ? '—' : `${fmt.format(l.bmMedia)}<span class="subtxt">${volTxt}</span>`}</td>
+        <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${l.volDia === null ? 'Volume do BM desconhecido: sugerido 1. Se viu a quantidade da ordem no jogo, digite aqui.' : 'Cabe na prata, limitado às vendas por dia do BM.'}"></td>
+        <td class="num c-lucro potencial">+${fmt.format(l.potencial)}</td>
+        <td><span class="idade${velhoCid}">${idadeTxt(l.custoData)}</span> · <span class="idade${velhoBm}">${idadeTxt(l.bmData)}</span></td>
+      </tr>`;
+    }).join('');
+    if (linhas.length > MAX_LINHAS) {
+      el.linhas.insertAdjacentHTML('beforeend', `<tr><td colspan="12" class="vazio">Mostrando ${MAX_LINHAS} de ${fmt.format(linhas.length)}. Refine os filtros.</td></tr>`);
+    }
+    renderCesta();
+  }
+
+  function escapar(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  restaurarFiltros();
+  el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
+  el.prataTxt.textContent = prataAtual() ? fmt.format(prataAtual()) : '';
+  el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
+
+  el.atualizar.addEventListener('click', atualizar);
+  for (const id of ['prata', 'lucroMin', 'idadeBm', 'idadeCid', 'busca']) el[id].addEventListener('input', render);
+  for (const id of ['premium', 'estimar']) el[id].addEventListener('change', render);
+  for (const id of ['cruzar', 'ordemCompra']) el[id].addEventListener('change', () => {
+    el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
+    if (pares.length) setStatus('Clique em Atualizar pra recalcular com essa opção.');
+  });
+  for (const id of ['tier', 'ench', 'slot']) el[id].addEventListener('change', () => {
+    render();
+    // Restringir a seleção filtra na hora; ampliar além do que foi carregado exige nova busca.
+    if (selCarregada && !contida(selecao(), selCarregada)) setStatus('Seleção ampliada: clique em Atualizar pra buscar o que ainda não foi carregado.');
+  });
+  for (const id of ['servidor', 'cidade']) el[id].addEventListener('change', () => {
+    if (pares.length) setStatus('Clique em Atualizar pra carregar essa seleção.');
+  });
+  for (const id of CAMPOS_SALVOS) el[id].addEventListener(el[id].type === 'checkbox' || el[id].tagName === 'SELECT' ? 'change' : 'input', salvarFiltros);
+  for (const k of Object.keys(multi)) el[k].addEventListener('change', salvarFiltros);
+  document.querySelectorAll('th.ord').forEach((th) => th.addEventListener('click', () => {
+    if (ordem === th.dataset.ord) direcao = direcao === 'desc' ? 'asc' : 'desc';
+    else { ordem = th.dataset.ord; direcao = ordem === 'idade' ? 'asc' : 'desc'; }
+    document.querySelectorAll('th.ord').forEach((t) => {
+      t.classList.toggle('ativo', t === th);
+      t.classList.toggle('desc', t === th && direcao === 'desc');
+      t.classList.toggle('asc', t === th && direcao === 'asc');
+    });
+    render();
+  }));
+
+  // Cesta: marcar linha, editar quantidade, montar pelo plano, limpar.
+  el.linhas.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (!t.classList.contains('cesta-cb')) return;
+    if (t.checked) cesta.add(t.dataset.chave); else cesta.delete(t.dataset.chave);
+    renderCesta();
+  });
+  el.linhas.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (!t.classList.contains('qtd')) return;
+    const n = Math.max(0, Math.floor(Number(t.value) || 0));
+    qtdEditada.set(t.dataset.chave, n);
+    const l = visiveis.get(t.dataset.chave);
+    if (l) { l.qtd = n; l.potencial = n * l.lucro; t.closest('tr').querySelector('.potencial').textContent = `+${fmt.format(l.potencial)}`; }
+    renderCesta();
+  });
+  el.montarPlano.addEventListener('click', () => {
+    const prata = prataAtual();
+    if (!prata) { setStatus('Informe a prata disponível pra montar o plano.', true); return; }
+    const plano = montarPlano(filtrar(), prata);
+    cesta.clear();
+    for (const [k, n] of plano) { cesta.add(k); qtdEditada.set(k, n); }
+    render();
+    setStatus(plano.size ? `Plano montado: ${plano.size} itens pela melhor ROI dentro de ${fmt.format(prata)}.` : 'Nenhuma linha cabe na prata com os filtros atuais.', !plano.size);
+  });
+  el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); render(); });
+
+  // Abas: Ferramenta, Guia e Admin (esta só aparece pra admin). Só mostra e esconde; nada é perdido ao trocar.
+  const ABAS = { ferramenta: 'abaFerramenta', guia: 'abaGuia', admin: 'abaAdmin' };
+  document.querySelectorAll('.aba[data-aba]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.aba[data-aba]').forEach((x) => x.classList.toggle('ativa', x === b));
+    for (const [aba, id] of Object.entries(ABAS)) $(id).hidden = aba !== b.dataset.aba;
+    window.scrollTo({ top: 0 });
+  }));
+
+  // Ponte com conta.js: filtros vindos da conta e a cesta pra salvar como viagem.
+  window.FlipBM = {
+    aplicarFiltros(v) {
+      restaurarFiltros(v);
+      el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
+      try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosAtuais())); } catch { /* idem */ }
+      render();
+    },
+    resumoCesta() {
+      const taxa = taxaAtual(), prata = prataAtual();
+      const itens = [];
+      let unidades = 0, investimento = 0, lucro = 0;
+      for (const p of pares) {
+        if (!cesta.has(p.chave)) continue;
+        const n = qtdDe(p, prata);
+        if (n <= 0) continue;
+        const c = calcular(p, taxa);
+        itens.push({ id: p.item.id, nome: p.item.nome, q: p.q, cidade: p.cidade, custo: p.custo, estimado: p.fonte !== 'real', bm: p.bm, qtd: n, lucro: c.lucro });
+        unidades += n; investimento += n * p.custo; lucro += n * c.lucro;
+      }
+      return { servidor: el.servidor.value, cidade: el.cidade.value === TODAS ? 'Todas as cidades' : el.cidade.value, itens, unidades, investimento, lucro };
+    },
+    status: setStatus,
+  };
+})();
+</script>
+</body>
+</html>
