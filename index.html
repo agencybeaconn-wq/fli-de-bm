@@ -235,6 +235,8 @@
   .tier { font-family: var(--mono); color: var(--accent-2); }
   .qual { color: var(--vib-1); }
   .est { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: var(--r-chip); background: var(--accent-soft); color: var(--accent-2); font-family: var(--font); font-size: 11px; font-weight: 500; }
+  table.sem-estimado th:nth-child(4), table.sem-estimado td:nth-child(4) { display: none; }
+  .badge-alerta { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: var(--r-chip); background: rgba(96, 165, 250, .16); color: var(--c-roi); font-family: var(--font); font-size: 11px; font-weight: 500; white-space: normal; }
   .badge-est { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: var(--r-chip); background: var(--c-est-soft); color: var(--c-est); font-family: var(--font); font-size: 11px; font-weight: 500; }
   .subtxt { display: block; margin-top: 2px; font-family: var(--font); font-size: 11px; color: var(--vib-2); }
   input.qtd { width: 68px; height: 32px; padding: 0 8px; text-align: right; border-radius: var(--r-inner); }
@@ -478,6 +480,7 @@
     <span id="cestaRegra" class="regra" hidden></span>
     <span class="botoes">
       <button type="button" class="secundario" id="montarPlano">Montar pela melhor ROI</button>
+      <button type="button" class="secundario" id="soCesta" hidden>Ver só a cesta</button>
       <button type="button" class="secundario" id="salvarViagem">Salvar viagem</button>
       <button type="button" class="link" id="limparCesta">Limpar</button>
     </span>
@@ -575,7 +578,7 @@
         <li><b class="c-lucro">Lucro/un</b>: líquido menos custo, por unidade.</li>
         <li><b class="c-roi">ROI</b>: lucro dividido pelo custo. Quanto cada prata investida rende. É a coluna mais importante quando a prata é limitada.</li>
         <li><b>Vendas/dia</b>: quantas unidades o BM comprou por dia e quantas a cidade negociou por dia, nos últimos 7 dias. Nenhuma é a quantidade da ordem ou da listagem de agora, que a API não mostra. Embaixo vem a recomendação: até 30% do BM e até o que a cidade negocia, o menor dos dois.</li>
-        <li><b>Levar</b>: já vem com a recomendação (o menor entre 30% das vendas do BM e o volume diário da cidade, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem ou a listagem no jogo, digite a quantidade real.</li>
+        <li><b>Levar</b>: já vem com a recomendação (o menor entre 30% das vendas do BM e o volume diário da cidade, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem ou a listagem no jogo, digite a quantidade real. Quando o ROI é alto mas a quantidade ficou travada em 1 ou 2, aparece "confira a demanda no jogo": vale olhar quantas ordens o BM tem e quantas unidades a cidade lista, e levar mais se houver.</li>
         <li><b class="c-lucro">Potencial</b>: lucro por unidade vezes a quantidade.</li>
         <li><b>Idade</b>: há quanto tempo cada preço foi visto (cidade · BM). ⚠ marca acima de 6 horas.</li>
       </ul>
@@ -584,7 +587,7 @@
 
     <section class="mat-card">
       <h2>Cesta: o plano da viagem</h2>
-      <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem.</p>
+      <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem. "Ver só a cesta" filtra a tabela pros itens marcados; "Ver todos os itens" volta.</p>
       <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI, mas com quantidade realista por item (30% do que o BM compra por dia, o que a cidade negocia por dia e 25% da prata). Por isso um capuz de ROI altíssimo que a cidade mal negocia recebe pouco, e a prata desce pro próximo item. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
     </section>
 
@@ -649,7 +652,7 @@
     ordemCompra: $('ordemCompra'), custoTxt: $('custoTxt'), rModo: $('rModo'), busca: $('busca'), atualizar: $('atualizar'),
     barra: $('barra'), status: $('status'), resumo: $('resumo'), rOportunidades: $('rOportunidades'), rEstimadas: $('rEstimadas'),
     rCobBm: $('rCobBm'), rCobCid: $('rCobCid'), rItens: $('rItens'), rHora: $('rHora'),
-    cesta: $('cesta'), cestaTxt: $('cestaTxt'), montarPlano: $('montarPlano'), limparCesta: $('limparCesta'),
+    cesta: $('cesta'), cestaTxt: $('cestaTxt'), montarPlano: $('montarPlano'), soCesta: $('soCesta'), limparCesta: $('limparCesta'),
     linhas: $('linhas'), vazio: $('vazio'),
   };
   const fmt = new Intl.NumberFormat('pt-BR');
@@ -663,6 +666,7 @@
   let direcao = 'desc';        // clicar na coluna ativa inverte; idade começa crescente (mais novo primeiro)
   let carregando = false;
   const cesta = new Set();     // chaves das linhas marcadas
+  let soCesta = false;         // tabela mostrando só as linhas da cesta
   const qtdEditada = new Map(); // chave -> quantidade digitada pelo usuário
   let visiveis = new Map();    // chave -> linha renderizada (com lucro calculado)
 
@@ -1050,6 +1054,9 @@
     if (tetoCid !== null && (tetoBm === null || tetoCid <= tetoBm)) return { teto: tetoCid, motivo: motivoCid };
     return { teto: tetoBm, motivo: `30% das vendas/dia do BM (${fmt.format(tetoBm)})` };
   }
+  // ROI alto com quantidade travada em 1 ou 2 pelo volume conhecido: pode ser oportunidade escondida. Vale olhar no jogo
+  // quantas ordens o BM tem e quantas unidades a cidade lista; se houver, levar mais.
+  const valeConferir = (l) => l.roi >= 0.5 && l.lucro >= 5000 && tetoRealista(l).teto <= 2;
   function sugerirQtd(p, prata) {
     const cabe = prata ? Math.floor(prata / p.custo) : Infinity;
     const n = Math.min(cabe, tetoRealista(p).teto);
@@ -1071,6 +1078,7 @@
     for (const p of pares) {
       if (!passaSelecao(p.item, sel)) continue;
       if (!estimar && !comEstimativa && p.fonte !== 'real') continue;
+      if (soCesta && !cesta.has(p.chave)) continue;
       if (busca && !p.item.nome.toLowerCase().includes(busca) && !p.item.id.toLowerCase().includes(busca)) continue;
       const c = calcular(p, taxa);
       if (c.lucro < (semLucro ? 1 : lucroMin)) continue;
@@ -1121,7 +1129,7 @@
       if (n === tetoDia) limite = motivoTeto;
       else limite = tetoPrata * l.custo > resta * 0.99 ? 'prata restante' : '25% da prata por item';
       plano.set(l.chave, n);
-      motivos.set(l.chave, porque.length ? `${limite} · ${porque.join(', ')}` : limite);
+      motivos.set(l.chave, (porque.length ? `${limite} · ${porque.join(', ')}` : limite) + (valeConferir(l) ? ' · confira a demanda no jogo' : ''));
       resta -= n * l.custo;
     }
     return plano;
@@ -1141,6 +1149,9 @@
       ? `<b>${itens}</b> itens${estimados ? ` (<b>${estimados}</b> com custo estimado)` : ''} · <b>${fmt.format(unidades)}</b> unidades · investe <b>${fmt.format(investe)}</b> (prata em risco) · lucro esperado <b>${fmt.format(lucro)}</b> · ROI da viagem <b>${investe ? (lucro / investe * 100).toFixed(0) : 0}%</b>${prata && investe > prata ? ' · <b>passa da prata disponível</b>' : ''}`
       : 'vazia. Marque linhas ou monte pela melhor ROI.';
     for (const tr of el.linhas.querySelectorAll('tr[data-chave]')) tr.classList.toggle('na-cesta', cesta.has(tr.dataset.chave));
+    if (!itens) soCesta = false;
+    el.soCesta.hidden = !itens;
+    el.soCesta.textContent = soCesta ? 'Ver todos os itens' : 'Ver só a cesta';
   }
 
   // ---- ícones: fila própria com timeout. O servidor de imagens do Albion é HTTP/1.1 e um ícone inexistente
@@ -1204,6 +1215,8 @@
     const estimar = (el.estimar.value !== 'nao');
     el.prataTxt.textContent = prata ? fmt.format(prata) : '';
     el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
+    document.querySelector('.tabela-wrap table').classList.toggle('sem-estimado', !estimar);
+    document.querySelector('.legenda .c-est').hidden = !estimar;
 
     const linhas = filtrar();
     // Valor de cada coluna ordenável; null (sem dado) vai sempre pro fim.
@@ -1225,6 +1238,8 @@
     el.vazio.hidden = linhas.length > 0;
     if (!pares.length) {
       el.vazio.textContent = 'Nenhum dado carregado ainda.';
+    } else if (!linhas.length && soCesta) {
+      el.vazio.textContent = 'Nenhum item da cesta passa nos filtros atuais. Clique em "Ver todos os itens".';
     } else if (!linhas.length) {
       // Diz qual filtro está travando, pra não parecer que a API não respondeu.
       const partes = [
@@ -1245,6 +1260,7 @@
       const velhoBm = agoraMs - l.bmData > seisHoras ? ' velho' : '';
       const ench = l.item.ench ? `.${l.item.ench}` : '';
       const volTxt = l.volDia === null ? '' : `${l.volDia < 10 ? l.volDia.toFixed(1) : Math.round(l.volDia)}/dia`;
+      const alerta = valeConferir(l) ? `<span class="badge-alerta" title="ROI alto, mas o volume conhecido segura a quantidade em ${tetoRealista(l).teto}. Veja no BM quantas ordens há e na cidade quantas unidades estão à venda; se houver, vale levar mais.">confira a demanda no jogo</span>` : '';
       return `<tr data-chave="${l.chave}"${cesta.has(l.chave) ? ' class="na-cesta"' : ''}>
         <td class="sel"><input type="checkbox" class="caixa cesta-cb" data-chave="${l.chave}"${cesta.has(l.chave) ? ' checked' : ''} aria-label="Marcar pra cesta"></td>
         <td><div class="item">
@@ -1257,7 +1273,7 @@
         <td class="num c-liq">${fmt.format(l.liquido)}</td>
         <td class="num c-lucro">+${fmt.format(l.lucro)}</td>
         <td class="num c-roi">${(l.roi * 100).toFixed(0)}%</td>
-        <td class="num">${l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined) ? `—<span class="subtxt">sem volume: leve 1</span>` : `BM ${l.volDia === null ? '—' : volTxt}<span class="subtxt">cidade ${l.volCidDia === null ? 'sem histórico' : l.volCidDia === undefined ? '—' : (l.volCidDia < 10 ? l.volCidDia.toFixed(1) : Math.round(l.volCidDia)) + '/dia'} · leve até ${fmt.format(tetoRealista(l).teto)}</span>`}</td>
+        <td class="num">${l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined) ? `—<span class="subtxt">sem volume: leve 1</span>${alerta}` : `BM ${l.volDia === null ? '—' : volTxt}<span class="subtxt">cidade ${l.volCidDia === null ? 'sem histórico' : l.volCidDia === undefined ? '—' : (l.volCidDia < 10 ? l.volCidDia.toFixed(1) : Math.round(l.volCidDia)) + '/dia'} · leve até ${fmt.format(tetoRealista(l).teto)}</span>${alerta}`}</td>
         <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${tetoRealista(l).motivo}, limitado pela prata. Se viu a ordem ou a listagem no jogo, digite a quantidade real.">${motivos.has(l.chave) ? `<span class="subtxt">${escapar(motivos.get(l.chave))}</span>` : ''}</td>
         <td class="num c-lucro potencial">+${fmt.format(l.potencial)}</td>
         <td><span class="idade${velhoCid}">${idadeTxt(l.custoData)}</span> · <span class="idade${velhoBm}">${idadeTxt(l.bmData)}</span></td>
@@ -1327,12 +1343,14 @@
     const plano = montarPlano(filtrar(), prata);
     cesta.clear();
     for (const [k, n] of plano) { cesta.add(k); qtdEditada.set(k, n); }
+    soCesta = plano.size > 0;
     render();
     $('cestaRegra').textContent = 'Regra: maior ROI primeiro, mas com quantidade realista: por item, até 30% do que o BM compra por dia, até o que a cidade negocia por dia e até 25% da prata. Assim o lucro total manda, não só o ROI. Estimativa, dado velho, sem volume e lucro pequeno por unidade entram por último. O motivo de cada quantidade está embaixo de Levar.';
     $('cestaRegra').hidden = !plano.size;
     setStatus(plano.size ? `Plano montado: ${plano.size} itens pela melhor ROI dentro de ${fmt.format(prata)}.` : 'Nenhuma linha cabe na prata com os filtros atuais.', !plano.size);
   });
-  el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); motivos.clear(); $('cestaRegra').hidden = true; render(); });
+  el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); motivos.clear(); soCesta = false; $('cestaRegra').hidden = true; render(); });
+  el.soCesta.addEventListener('click', () => { soCesta = !soCesta; render(); });
 
   // Abas: Ferramenta, Guia e Admin (esta só aparece pra admin). Só mostra e esconde; nada é perdido ao trocar.
   const ABAS = { ferramenta: 'abaFerramenta', guia: 'abaGuia', admin: 'abaAdmin' };
