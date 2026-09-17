@@ -1,38 +1,36 @@
-# Flip do Mercado Negro
+# Albion Flip de BM
 
-Ferramenta local pra achar itens que valem comprar no mercado de uma cidade real e vender pra ordem de compra do Black Market (Caerleon), no Albion Online.
+Ferramenta pra achar itens que valem comprar no mercado de uma cidade real e vender pra ordem de compra do Black Market (Caerleon), no Albion Online. Site estático com contas via Supabase.
 
 ## Uso
 
-1. Abrir `index.html` no navegador (duplo clique). Não precisa de servidor.
+1. Entrar ou criar conta (confirmação por email).
 2. Escolher servidor, cidade onde vai comprar (ou "Todas as cidades"), prata disponível, tier, encantamento e tipo de item, e clicar em **Atualizar preços**.
-3. A tabela lista só o que dá lucro após a taxa de venda (4% premium, 8% sem), ordenada por ROI.
-4. **Montar pela melhor ROI** monta a cesta gastando a prata do maior ROI pro menor, respeitando quantas unidades o BM compra por dia de cada item. A cesta mostra investimento (prata em risco na estrada), lucro esperado e ROI da viagem. Dá pra marcar linhas e editar quantidades na mão.
+3. A tabela lista só o que dá lucro após a taxa de venda (4% premium, 8% sem), ordenada por ROI. A aba **Guia** explica cada parte.
+4. **Montar pela melhor ROI** monta a cesta gastando a prata do maior ROI pro menor, respeitando quantas unidades o BM compra por dia. **Salvar viagem** guarda a cesta na conta.
 
-Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.com/). A página lembra os filtros escolhidos entre aberturas (só os filtros; preço nunca é guardado).
+Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.com/), direto do navegador de cada usuário. A conta guarda só filtros e viagens; preço nunca é guardado.
 
-## Colunas
+## Arquivos
 
-- **Custo (cidade)**: menor ordem de venda atual na cidade. Embaixo, onde há registro do item mais barato entre as 7 cidades reais.
-- **Estimado**: menor preço atual em outra cidade real; se nenhuma cidade tem, média de vendas da própria cidade em 30 dias (endpoint `history`). O lucro só usa o estimado quando não há custo atual.
-- **BM paga**: maior ordem de compra do Black Market. Com "cruzar qualidades", uma ordem de qualidade menor aceita item de qualidade maior e a linha mostra qual ordem usa.
-- **BM 7 dias**: preço médio a que o BM comprou e vendas por dia (endpoint `history` no Black Market). É o teto de quanto levar.
-- **Levar / Potencial**: quantidade sugerida (cabe na prata, limitada pelas vendas por dia; sem volume conhecido, 1) e lucro dessa quantidade.
+- `index.html`: a ferramenta inteira (lógica inline) e o guia.
+- `conta.js`: login, cadastro, perfil, filtros por conta, viagens e painel admin (Supabase JS via CDN).
+- `config.js`: URL do projeto Supabase e chave publishable (pública por desenho; tudo passa por RLS).
+- `items.js`: catálogo gerado do dump oficial. Regenerar quando o jogo ganhar itens: `node scripts/gerar-catalogo.js`.
+- `supabase/migrations/0001_contas.sql`: tabelas, RLS, trigger de perfil e Auth Hook.
 
-## Modos
+## Contas e papéis
 
-- **Cruzar qualidades** (ligado por padrão): usa a regra de ordem de compra aceitar qualidade igual ou melhor. Confirmar uma vez no jogo.
-- **Comprar por ordem de compra**: custo vira o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa. Lucro só sai se a ordem preencher.
-- **Todas as cidades**: uma linha por cidade com preço, pra decidir pra onde ir.
+- `profiles` (papel `admin` ou `user`, bloqueado), `user_settings` (filtros), `trips` (viagens). RLS em toda tabela: usuário só lê e escreve o próprio; admin lê todos os perfis e bloqueia.
+- O papel vai no JWT pelo Auth Hook `public.custom_access_token_hook`. Precisa ser ativado no painel: Authentication → Hooks → Custom Access Token → função `custom_access_token_hook`.
+- O dono vira admin pelo email definido na trigger `criar_perfil` (migration).
+
+## Deploy
+
+- GitHub `agencybeaconn-wq/fli-de-bm` conectado ao Vercel (site estático, sem build).
+- No Supabase, Authentication → URL Configuration: Site URL = URL do site no Vercel, e a mesma URL em Redirect URLs (links de confirmação e de redefinir senha voltam pra lá).
+- Chaves secret e service_role nunca entram no frontend nem no repositório.
 
 ## Dado fresco
 
-A API só sabe o que alguém viu no jogo. Rodar o [albiondata-client](https://github.com/ao-data/albiondata-client) (precisa do Npcap em modo compatível com WinPcap) enquanto joga e abrir o Black Market e o mercado da cidade faz seus próprios dados alimentarem a API em segundos. Os dois filtros de idade são separados de propósito: quem escaneia o BM aperta a idade do BM e afrouxa a da cidade. O resumo mostra a cobertura (quantos itens têm preço no BM e na cidade).
-
-## Catálogo de itens
-
-`items.js` é gerado a partir do dump oficial. Regenerar quando o jogo ganhar itens novos:
-
-```
-node scripts/gerar-catalogo.js
-```
+A API só sabe o que alguém viu no jogo. Rodar o [albiondata-client](https://github.com/ao-data/albiondata-client) (com Npcap em modo compatível com WinPcap) enquanto joga e abrir o Black Market e o mercado da cidade faz seus próprios dados alimentarem a API em segundos. Os dois filtros de idade são separados de propósito: quem escaneia o BM aperta a idade do BM e afrouxa a da cidade.
