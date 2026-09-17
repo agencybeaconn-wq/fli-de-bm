@@ -11,6 +11,14 @@ Ferramenta pra achar itens que valem comprar no mercado de uma cidade real e ven
 
 Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.com/), direto do navegador de cada usuário. A conta guarda só filtros e viagens; preço nunca é guardado.
 
+## Como a atualização funciona
+
+1. Uma requisição por lote de itens traz BM + as 7 cidades reais. A tabela aparece aqui e o botão libera.
+2. Em seguida, o histórico do BM (7 dias) traz preço médio e vendas por dia; depois, a média da cidade (30 dias) pra quem ficou sem preço. Os dois ficam em cache por 30 minutos: a segunda atualização só busca preços.
+3. Toda atualização volta a ordenar por ROI.
+4. Limite da API: 180 requisições por minuto e 300 a cada 5 minutos. Num 429 a página respeita o `Retry-After` e pausa todos os lotes juntos.
+5. Ícones vêm do servidor de imagens do Albion por uma fila de 4 com timeout de 3 s (um ícone inexistente demora até 50 s pra dar 404 e travaria a fila). Quem falha mostra o tier no lugar.
+
 ## Arquivos
 
 - `index.html`: a ferramenta inteira (lógica inline) e o guia.

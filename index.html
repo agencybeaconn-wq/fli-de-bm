@@ -233,7 +233,11 @@
   tbody tr:hover { background: rgba(255, 255, 255, .04); }
   tbody tr.na-cesta { background: var(--accent-soft); }
   .item { display: flex; align-items: center; gap: 10px; }
-  .item img { width: 40px; height: 40px; border-radius: var(--r-inner); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); flex: none; }
+  .icone { position: relative; width: 40px; height: 40px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: var(--r-inner); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); font-family: var(--mono); font-size: 11px; color: var(--vib-3); }
+  .icone::before { content: attr(data-tier); }
+  .icone img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .2s var(--ease-out); }
+  .icone.ok::before { display: none; }
+  .icone.ok img { opacity: 1; }
   .item .nome { font-weight: 500; }
   .item .meta { font-size: 12px; color: var(--vib-2); }
   .tier { font-family: var(--mono); color: var(--accent-2); }
@@ -444,8 +448,11 @@
         <label class="toggle"><input id="cruzar" type="checkbox" checked><span>Cruzar qualidades</span></label>
       </div>
       <div class="campo">
-        <span class="grupo-label">Como comprar</span>
-        <label class="toggle"><input id="ordemCompra" type="checkbox"><span id="ordemCompraTxt">Na hora</span></label>
+        <label for="ordemCompra">Como comprar na cidade</label>
+        <select id="ordemCompra">
+          <option value="nahora" selected>Na hora (paga a ordem de venda)</option>
+          <option value="ordem">Colocando ordem de compra</option>
+        </select>
       </div>
       <div class="campo">
         <label for="busca">Buscar item</label>
@@ -461,6 +468,7 @@
 
   <div class="resumo" id="resumo" hidden>
     <span><b id="rOportunidades">0</b> oportunidades</span>
+    <span class="est" id="rModo">compra na hora</span>
     <span><b id="rEstimadas">0</b> com custo estimado</span>
     <span>cobertura: BM <b id="rCobBm">0</b> · cidade <b id="rCobCid">0</b> dos <b id="rItens">0</b> itens</span>
     <span>atualizado às <b id="rHora">—</b></span>
@@ -495,7 +503,7 @@
         <tr>
           <th class="sel"></th>
           <th>Item</th>
-          <th class="num ord c-custo" data-ord="custo" title="Menor ordem de venda atual na cidade">Custo<span class="seta"></span></th>
+          <th class="num ord c-custo" data-ord="custo" title="Menor ordem de venda atual na cidade"><span id="custoTxt">Custo</span><span class="seta"></span></th>
           <th class="num ord c-est" data-ord="est" title="Estimativa quando a cidade não tem preço">Estimado<span class="seta"></span></th>
           <th class="num ord c-bm" data-ord="bm" title="Maior ordem de compra do Black Market">BM paga<span class="seta"></span></th>
           <th class="num ord c-liq" data-ord="liquido" title="BM paga menos a taxa de venda"><span id="liqTxt">Líquido</span><span class="seta"></span></th>
@@ -551,7 +559,7 @@
         <div class="cartao"><h3>Taxa de venda no BM</h3><p>4% com premium, 8% sem. Entra no cálculo do líquido e, portanto, do lucro e do ROI.</p></div>
         <div class="cartao"><h3>Cidade sem preço: Estimar</h3><p>Quando a cidade não tem preço registrado, a ferramenta estima pelo menor preço de outra cidade real ou pela média de vendas de 30 dias. É pista pra ir conferir, não pra comprar às cegas.</p></div>
         <div class="cartao"><h3>Cruzar qualidades</h3><p>Uma ordem de compra aceita item da qualidade pedida ou melhor. Ligado, a ferramenta vende seu item Bom numa ordem Normal se ela paga mais. Confirme uma vez no jogo.</p></div>
-        <div class="cartao"><h3>Como comprar</h3><p>"Na hora" usa a menor ordem de venda. "Por ordem de compra" simula você colocando ordem abaixo do preço: mais barato, mas só rende se preencher.</p></div>
+        <div class="cartao"><h3>Como comprar na cidade</h3><p>"Na hora" paga a menor ordem de venda e leva o item no ato. "Colocando ordem de compra" simula você deixando uma ordem abaixo do preço: mais barato, mas só rende se alguém vender pra ela. O cabeçalho da coluna Custo e o resumo dizem qual modo a tabela está mostrando.</p></div>
         <div class="cartao"><h3>Buscar item</h3><p>Filtra a tabela pelo nome ou pelo código do item, sem nova busca.</p></div>
         <div class="cartao"><h3>Atualizar preços</h3><p>Busca os preços na API. Mudou servidor, cidade, tier, encantamento, tipo, qualidade ou modo de compra: clique de novo. Os outros filtros aplicam na hora.</p></div>
       </div>
@@ -638,7 +646,7 @@
     servidor: $('servidor'), cidade: $('cidade'), prata: $('prata'), prataTxt: $('prataTxt'), lucroMin: $('lucroMin'),
     tier: $('tier'), ench: $('ench'), slot: $('slot'), idadeBm: $('idadeBm'), idadeCid: $('idadeCid'),
     premium: $('premium'), liqTxt: $('liqTxt'), estimar: $('estimar'), cruzar: $('cruzar'),
-    ordemCompra: $('ordemCompra'), ordemCompraTxt: $('ordemCompraTxt'), busca: $('busca'), atualizar: $('atualizar'),
+    ordemCompra: $('ordemCompra'), custoTxt: $('custoTxt'), rModo: $('rModo'), busca: $('busca'), atualizar: $('atualizar'),
     barra: $('barra'), status: $('status'), resumo: $('resumo'), rOportunidades: $('rOportunidades'), rEstimadas: $('rEstimadas'),
     rCobBm: $('rCobBm'), rCobCid: $('rCobCid'), rItens: $('rItens'), rHora: $('rHora'),
     cesta: $('cesta'), cestaTxt: $('cestaTxt'), montarPlano: $('montarPlano'), limparCesta: $('limparCesta'),
@@ -764,9 +772,17 @@
 
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  let pausaAte = 0; // quando a API devolve 429, todos os lotes esperam juntos em vez de insistir
   async function buscar(url, tentativa = 0) {
+    if (pausaAte > Date.now()) await esperar(pausaAte - Date.now());
     const r = await fetch(url);
-    if (r.status === 429 && tentativa < 2) { await esperar(5000 * (tentativa + 1)); return buscar(url, tentativa + 1); }
+    if (r.status === 429 && tentativa < 3) {
+      const espera = Math.min(30, Number(r.headers.get('retry-after')) || 10) * 1000;
+      pausaAte = Math.max(pausaAte, Date.now() + espera);
+      setStatus(`A API pediu pausa de ${Math.round(espera / 1000)} s (limite de requisições)…`);
+      await esperar(espera);
+      return buscar(url, tentativa + 1);
+    }
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }
@@ -808,79 +824,15 @@
     return melhor;
   }
 
-  async function atualizar() {
-    if (carregando) return;
-    const sel = selecao();
-    if (!sel.tiers.length || !sel.enchs.length || !sel.slots.length) {
-      setStatus('Marque ao menos um tier, um encantamento e um tipo de item.', true);
-      return;
-    }
-    carregando = true;
-    el.atualizar.disabled = true;
-    el.barra.hidden = false;
-    el.barra.firstElementChild.style.width = '0%';
+  // ---- cache de histórico (30 min): o volume do BM e a média da cidade mudam devagar; os preços, não ----
+  const CACHE_TTL = 30 * 60000;
+  const cacheHist = new Map(); // `${base}|${local}|${id}` -> { porQ, ts }
+  const lerCache = (chave) => { const c = cacheHist.get(chave); return c && Date.now() - c.ts < CACHE_TTL ? c.porQ : null; };
+  let execucaoAtual = 0;
 
-    const base = SERVIDORES[el.servidor.value];
-    const cidadeSel = el.cidade.value;
-    const modoTodas = cidadeSel === TODAS;
-    const porOrdem = el.ordemCompra.checked;
-    const ids = [...catalogo.values()].filter((i) => passaSelecao(i, sel)).map((i) => i.id);
-    const dados = new Map(); // id -> { bm: {q: {p,d}}, cid: {cidade: {q: {venda, compra}}}, volBm: {q: {media, porDia, d}}, histCid: {q: {p, d}} }
-    const entrada = (id) => dados.get(id) || (dados.set(id, {}), dados.get(id));
-    const hoje = new Date();
-    const data = (d) => d.toISOString().slice(0, 10);
-
-    // Passo 1: preço atual no BM e nas 7 cidades reais (cidade escolhida + fontes de estimativa), ordens de venda e de compra.
-    // No Black Market o que interessa é buy_price_max (ordem de compra do BM). O campo sell_price_min quase nunca vem
-    // preenchido lá e, quando vem, é mais velho: medido em 2026-09 (413 linhas só com buy, 6 só com sell).
-    const urlsPrecos = montarLotes(ids, `${base}/api/v2/stats/prices/`, `.json?locations=BlackMarket,${TODAS_CIDADES_API}`);
-    let falhas = await buscarLotes(urlsPrecos, (rows) => {
-      for (const row of rows) {
-        const e = entrada(row.item_id);
-        const q = row.quality;
-        if (row.city === 'Black Market') {
-          if (row.buy_price_max > 0) (e.bm ||= {})[q] = { p: row.buy_price_max, d: row.buy_price_max_date };
-        } else {
-          const oferta = ((e.cid ||= {})[row.city] ||= {})[q] ||= {};
-          if (row.sell_price_min > 0) oferta.venda = { p: row.sell_price_min, d: row.sell_price_min_date };
-          if (row.buy_price_max > 0) oferta.compra = { p: row.buy_price_max, d: row.buy_price_max_date };
-        }
-      }
-    }, 'Buscando preços');
-
-    // Passo 2: o que o BM de fato comprou nos últimos 7 dias (preço médio e vendas por dia) — limita quanto levar.
-    const idsComBm = ids.filter((id) => dados.get(id)?.bm);
-    if (idsComBm.length) {
-      const inicio = new Date(hoje.getTime() - DIAS_BM * 864e5);
-      const urlsBm = montarLotes(idsComBm, `${base}/api/v2/stats/history/`, `.json?locations=BlackMarket&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`);
-      falhas += await buscarLotes(urlsBm, (entradas) => {
-        for (const h of entradas) {
-          const r = resumirHistorico(h.data);
-          if (r) (entrada(h.item_id).volBm ||= {})[h.quality] = { media: r.media, porDia: r.qtd / DIAS_BM, d: r.d };
-        }
-      }, 'Buscando volume do BM');
-    }
-
-    // Passo 3: quem tem ordem no BM mas nenhum preço atual em cidade nenhuma recebe a média de vendas da cidade em 30 dias.
-    const temVenda = (e, cidade) => Object.values(e.cid?.[cidade] || {}).some((o) => o.venda);
-    if (!modoTodas && !porOrdem) {
-      const semPreco = idsComBm.filter((id) => { const e = dados.get(id); return !Object.keys(CIDADES).some((c) => temVenda(e, c)); });
-      if (semPreco.length) {
-        const inicio = new Date(hoje.getTime() - DIAS_HISTORICO * 864e5);
-        const urlsHist = montarLotes(semPreco, `${base}/api/v2/stats/history/`, `.json?locations=${CIDADES[cidadeSel]}&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`);
-        falhas += await buscarLotes(urlsHist, (entradas) => {
-          for (const h of entradas) {
-            const r = resumirHistorico(h.data);
-            if (r) (entrada(h.item_id).histCid ||= {})[h.quality] = { p: r.media, d: r.d };
-          }
-        }, 'Buscando histórico da cidade');
-      }
-    }
-
-    // Monta as linhas: uma por (item, qualidade, cidade) com custo (atual ou estimado) e melhor ordem do BM.
-    const cruzar = el.cruzar.checked;
-    const cidadesAlvo = modoTodas ? Object.keys(CIDADES) : [cidadeSel];
-    pares = [];
+  // Reconstrói as linhas a partir de `dados`. Chamado depois de cada etapa: a tabela aparece cedo e vai enriquecendo.
+  function montarPares(dados, ids, cidadesAlvo, modoTodas, porOrdem, cruzar) {
+    const out = [];
     for (const id of ids) {
       const e = dados.get(id);
       if (!e?.bm) continue;
@@ -897,7 +849,7 @@
           }
           let real = null, est = null;
           if (porOrdem) {
-            // Preço da ordem que você colocaria: acima da maior ordem atual, mas nunca abaixo do piso em relação ao preço de venda
+            // Preço da ordem que você colocaria: acima da maior ordem atual, nunca abaixo do piso em relação ao preço de venda
             // (ordem de 26 de prata num item de 300 mil existe na API e nunca preenche). Sem venda na cidade, usa a mais barata
             // registrada em qualquer cidade como referência. Mais a taxa de criação.
             if (oferta?.compra) {
@@ -922,8 +874,8 @@
           if (!bm) continue;
           const usado = real || est;
           const vol = e.volBm?.[bm.q] || e.volBm?.[q] || null;
-          pares.push({
-            chave: `${id}|${q}|${cidade}`, item, q, cidade, real: real ? real.p : null, est, maisBarato,
+          out.push({
+            chave: `${id}|${q}|${cidade}`, item, q, cidade, real: real ? real.p : null, est, maisBarato, porOrdem,
             custo: usado.p, custoData: Date.parse(usado.d + 'Z'), fonte: real ? 'real' : 'est',
             bm: bm.p, bmQ: bm.q, bmData: Date.parse(bm.d + 'Z'),
             volDia: vol ? vol.porDia : null, bmMedia: vol ? vol.media : null,
@@ -931,28 +883,137 @@
         }
       }
     }
-    cobertura = {
-      itens: ids.length,
-      bm: idsComBm.length,
-      cid: ids.filter((id) => { const e = dados.get(id); if (!e?.cid) return false; return cidadesAlvo.some((c) => Object.values(e.cid[c] || {}).some((o) => (porOrdem ? o.compra : o.venda))); }).length,
-    };
-    selCarregada = sel;
-    for (const k of cesta) if (!pares.some((p) => p.chave === k)) cesta.delete(k);
+    return out;
+  }
 
-    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    el.rHora.textContent = hora;
-    el.rItens.textContent = fmt.format(cobertura.itens);
-    el.rCobBm.textContent = fmt.format(cobertura.bm);
-    el.rCobCid.textContent = fmt.format(cobertura.cid);
-    el.resumo.hidden = false;
-    el.cesta.hidden = false;
-    $('legenda').hidden = false;
+  async function atualizar() {
+    if (carregando) return;
+    const sel = selecao();
+    if (!sel.tiers.length || !sel.enchs.length || !sel.slots.length) {
+      setStatus('Marque ao menos um tier, um encantamento e um tipo de item.', true);
+      return;
+    }
+    const execucao = ++execucaoAtual;
+    const t0 = performance.now();
+    const seg = () => `${((performance.now() - t0) / 1000).toFixed(1).replace('.', ',')} s`;
+    const vivo = () => execucao === execucaoAtual;
+    carregando = true;
+    el.atualizar.disabled = true;
+    el.barra.hidden = false;
+    el.barra.firstElementChild.style.width = '0%';
+    // Toda atualização volta pro maior ROI: é o que diz onde a prata rende mais.
+    ordem = 'roi'; direcao = 'desc';
+    document.querySelectorAll('th.ord').forEach((t) => { const ativo = t.dataset.ord === 'roi'; t.classList.toggle('ativo', ativo); t.classList.toggle('desc', ativo); t.classList.remove('asc'); });
+
+    const base = SERVIDORES[el.servidor.value];
+    const cidadeSel = el.cidade.value;
+    const modoTodas = cidadeSel === TODAS;
+    const porOrdem = (el.ordemCompra.value === 'ordem');
+    const cruzar = el.cruzar.checked;
+    const cidadesAlvo = modoTodas ? Object.keys(CIDADES) : [cidadeSel];
     const origem = modoTodas ? 'Todas as cidades' : cidadeSel;
-    setStatus(falhas ? `${falhas} lotes falharam (limite da API?). Tente de novo em 1 min.` : `${origem} → Black Market · ${porOrdem ? 'compra por ordem' : 'compra na hora'} · ${hora}`, falhas > 0);
-    el.barra.hidden = true;
-    el.atualizar.disabled = false;
+    const ids = [...catalogo.values()].filter((i) => passaSelecao(i, sel)).map((i) => i.id);
+    const dados = new Map(); // id -> { bm: {q: {p,d}}, cid: {cidade: {q: {venda, compra}}}, volBm: {q: {media, porDia, d}}, histCid: {q: {p, d}} }
+    const entrada = (id) => dados.get(id) || (dados.set(id, {}), dados.get(id));
+    const hoje = new Date();
+    const data = (d) => d.toISOString().slice(0, 10);
+    const temVenda = (e, c) => Object.values(e.cid?.[c] || {}).some((o) => o.venda);
+    let falhas = 0;
+
+    // No Black Market o que interessa é buy_price_max (ordem de compra do BM). O campo sell_price_min quase nunca vem
+    // preenchido lá e, quando vem, é mais velho: medido em 2026-09 (413 linhas só com buy, 6 só com sell).
+    const tratarPrecos = (rows) => {
+      for (const row of rows) {
+        const e = entrada(row.item_id);
+        const q = row.quality;
+        if (row.city === 'Black Market') {
+          if (row.buy_price_max > 0) (e.bm ||= {})[q] = { p: row.buy_price_max, d: row.buy_price_max_date };
+        } else {
+          const oferta = ((e.cid ||= {})[row.city] ||= {})[q] ||= {};
+          if (row.sell_price_min > 0) oferta.venda = { p: row.sell_price_min, d: row.sell_price_min_date };
+          if (row.buy_price_max > 0) oferta.compra = { p: row.buy_price_max, d: row.buy_price_max_date };
+        }
+      }
+    };
+    const publicar = () => {
+      if (!vivo()) return;
+      pares = montarPares(dados, ids, cidadesAlvo, modoTodas, porOrdem, cruzar);
+      selCarregada = sel;
+      for (const k of cesta) if (!pares.some((p) => p.chave === k)) cesta.delete(k);
+      cobertura = {
+        itens: ids.length,
+        bm: ids.filter((id) => dados.get(id)?.bm).length,
+        cid: ids.filter((id) => { const e = dados.get(id); return !!e?.cid && cidadesAlvo.some((c) => Object.values(e.cid[c] || {}).some((o) => (porOrdem ? o.compra : o.venda))); }).length,
+      };
+      el.rItens.textContent = fmt.format(cobertura.itens);
+      el.rCobBm.textContent = fmt.format(cobertura.bm);
+      el.rCobCid.textContent = fmt.format(cobertura.cid);
+      el.rHora.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      el.custoTxt.textContent = porOrdem ? 'Custo (por ordem)' : 'Custo (na hora)';
+      el.rModo.textContent = porOrdem ? 'tabela: colocando ordem de compra' : 'tabela: compra na hora';
+      el.resumo.hidden = false;
+      el.cesta.hidden = false;
+      $('legenda').hidden = false;
+      render();
+    };
+
+    // Etapa 1: BM + as 7 cidades reais numa requisição só por lote (requisição é o recurso escasso: 300 a cada 5 min;
+    // bytes vêm comprimidos). A tabela aparece aqui; o botão libera aqui.
+    falhas += await buscarLotes(montarLotes(ids, `${base}/api/v2/stats/prices/`, `.json?locations=BlackMarket,${TODAS_CIDADES_API}`), tratarPrecos, 'Buscando preços');
+    if (!vivo()) return;
+    const idsComBm = ids.filter((id) => dados.get(id)?.bm);
+    publicar();
     carregando = false;
-    render();
+    el.atualizar.disabled = false;
+    setStatus(`${origem} → Black Market · preços em ${seg()} · completando volume do BM…`);
+
+    // Etapa 3: o que o BM comprou em 7 dias (preço médio e vendas por dia). Cache de 30 min por item.
+    if (idsComBm.length) {
+      const chaveBm = (id) => `${base}|bm|${id}`;
+      const faltam = idsComBm.filter((id) => !lerCache(chaveBm(id)));
+      if (faltam.length) {
+        const inicio = new Date(hoje.getTime() - DIAS_BM * 864e5);
+        const recebidos = new Map();
+        falhas += await buscarLotes(montarLotes(faltam, `${base}/api/v2/stats/history/`, `.json?locations=BlackMarket&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`), (entradas) => {
+          for (const h of entradas) {
+            const r = resumirHistorico(h.data);
+            if (!r) continue;
+            if (!recebidos.has(h.item_id)) recebidos.set(h.item_id, {});
+            recebidos.get(h.item_id)[h.quality] = { media: r.media, porDia: r.qtd / DIAS_BM, d: r.d };
+          }
+        }, 'Buscando volume do BM');
+        if (!vivo()) return;
+        for (const id of faltam) cacheHist.set(chaveBm(id), { porQ: recebidos.get(id) || {}, ts: Date.now() });
+      }
+      for (const id of idsComBm) { const porQ = lerCache(chaveBm(id)); if (porQ && Object.keys(porQ).length) entrada(id).volBm = porQ; }
+      publicar();
+    }
+
+    // Etapa 4: média de vendas da cidade em 30 dias pra quem ficou sem preço em cidade nenhuma. Cache de 30 min.
+    if (!modoTodas && !porOrdem) {
+      const semPreco = idsComBm.filter((id) => { const e = dados.get(id); return !Object.keys(CIDADES).some((c) => temVenda(e, c)); });
+      const chaveCid = (id) => `${base}|${CIDADES[cidadeSel]}|${id}`;
+      const faltam = semPreco.filter((id) => !lerCache(chaveCid(id)));
+      if (faltam.length) {
+        const inicio = new Date(hoje.getTime() - DIAS_HISTORICO * 864e5);
+        const recebidos = new Map();
+        falhas += await buscarLotes(montarLotes(faltam, `${base}/api/v2/stats/history/`, `.json?locations=${CIDADES[cidadeSel]}&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`), (entradas) => {
+          for (const h of entradas) {
+            const r = resumirHistorico(h.data);
+            if (!r) continue;
+            if (!recebidos.has(h.item_id)) recebidos.set(h.item_id, {});
+            recebidos.get(h.item_id)[h.quality] = { p: r.media, d: r.d };
+          }
+        }, 'Buscando histórico da cidade');
+        if (!vivo()) return;
+        for (const id of faltam) cacheHist.set(chaveCid(id), { porQ: recebidos.get(id) || {}, ts: Date.now() });
+      }
+      for (const id of semPreco) { const porQ = lerCache(chaveCid(id)); if (porQ && Object.keys(porQ).length) entrada(id).histCid = porQ; }
+      publicar();
+    }
+
+    el.barra.hidden = true;
+    setStatus(falhas ? `${falhas} lotes falharam (limite da API?). Tente de novo em 1 min.` : `${origem} → Black Market · ${porOrdem ? 'compra por ordem' : 'compra na hora'} · completo em ${seg()}`, falhas > 0);
   }
 
   function setStatus(msg, erro = false) {
@@ -1040,6 +1101,52 @@
     for (const tr of el.linhas.querySelectorAll('tr[data-chave]')) tr.classList.toggle('na-cesta', cesta.has(tr.dataset.chave));
   }
 
+  // ---- ícones: fila própria com timeout. O servidor de imagens do Albion é HTTP/1.1 e um ícone inexistente
+  // leva de 5 a 50 s pra responder 404; sem fila, meia dúzia desses trava as 6 conexões e nada mais carrega. ----
+  const ICONE_URL = (id) => `https://render.albiononline.com/v1/item/${id}.png?size=40`;
+  const ICONES_AO_MESMO_TEMPO = 4;
+  const ICONE_TIMEOUT = 3000;
+  const iconeEstado = new Map(); // id -> 'ok' | 'falhou'
+  const filaIcones = [];
+  let iconesCarregando = 0;
+  const observadorIcones = new IntersectionObserver((entradas) => {
+    for (const e of entradas) if (e.isIntersecting) { observadorIcones.unobserve(e.target); filaIcones.push(e.target); bombearIcones(); }
+  }, { root: document.querySelector('.tabela-wrap'), rootMargin: '240px 0px' });
+  function bombearIcones() {
+    while (iconesCarregando < ICONES_AO_MESMO_TEMPO && filaIcones.length) {
+      const wrap = filaIcones.shift();
+      if (!wrap.isConnected) continue;
+      const id = wrap.dataset.id;
+      if (iconeEstado.get(id) === 'falhou') continue;
+      if (iconeEstado.get(id) === 'ok') { mostrarIcone(wrap); continue; }
+      iconesCarregando++;
+      const img = wrap.querySelector('img');
+      let fim = false;
+      const terminar = (ok) => {
+        if (fim) return;
+        fim = true;
+        clearTimeout(timer);
+        iconesCarregando--;
+        iconeEstado.set(id, ok ? 'ok' : 'falhou');
+        if (ok) wrap.classList.add('ok'); else img.removeAttribute('src'); // remover src cancela o download em andamento
+        bombearIcones();
+      };
+      const timer = setTimeout(() => terminar(false), ICONE_TIMEOUT);
+      img.onload = () => terminar(true);
+      img.onerror = () => terminar(false);
+      img.src = ICONE_URL(id);
+    }
+  }
+  function mostrarIcone(wrap) { wrap.querySelector('img').src = ICONE_URL(wrap.dataset.id); wrap.classList.add('ok'); }
+  function prepararIcones() {
+    filaIcones.length = 0;
+    for (const wrap of el.linhas.querySelectorAll('.icone')) {
+      const estado = iconeEstado.get(wrap.dataset.id);
+      if (estado === 'ok') mostrarIcone(wrap);
+      else if (estado !== 'falhou') observadorIcones.observe(wrap);
+    }
+  }
+
   function render() {
     const prata = prataAtual();
     const estimar = el.estimar.checked;
@@ -1089,10 +1196,10 @@
       return `<tr data-chave="${l.chave}"${cesta.has(l.chave) ? ' class="na-cesta"' : ''}>
         <td class="sel"><input type="checkbox" class="caixa cesta-cb" data-chave="${l.chave}"${cesta.has(l.chave) ? ' checked' : ''} aria-label="Marcar pra cesta"></td>
         <td><div class="item">
-          <img loading="lazy" src="https://render.albiononline.com/v1/item/${l.item.id}.png?quality=${l.q}&size=40" alt="">
+          <span class="icone" data-id="${l.item.id}" data-tier="T${l.item.tier}${ench}"><img alt="" decoding="async"></span>
           <div><div class="nome">${escapar(l.item.nome)}</div><div class="meta"><span class="tier">T${l.item.tier}${ench}</span> · ${l.item.slot} · <span class="${l.q > 1 ? 'qual' : ''}">${QUALIDADE[l.q]}</span>${modoTodas ? ` · ${l.cidade}` : ''}</div></div>
         </div></td>
-        <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
+        <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.real !== null && l.porOrdem ? '<br><span class="est">ordem que você coloca</span>' : ''}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
         <td class="num c-est">${l.est ? `${fmt.format(l.est.p)}<br><span class="badge-est">${escapar(l.est.txt)}</span>` : '—'}</td>
         <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">ordem ${QUALIDADE[l.bmQ]}</span>` : ''}</td>
         <td class="num c-liq">${fmt.format(l.liquido)}</td>
@@ -1108,6 +1215,7 @@
       el.linhas.insertAdjacentHTML('beforeend', `<tr><td colspan="12" class="vazio">Mostrando ${MAX_LINHAS} de ${fmt.format(linhas.length)}. Refine os filtros.</td></tr>`);
     }
     renderCesta();
+    prepararIcones();
   }
 
   function escapar(s) {
@@ -1115,7 +1223,6 @@
   }
 
   restaurarFiltros();
-  el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
   el.prataTxt.textContent = prataAtual() ? fmt.format(prataAtual()) : '';
   el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
 
@@ -1123,7 +1230,6 @@
   for (const id of ['prata', 'lucroMin', 'idadeBm', 'idadeCid', 'busca']) el[id].addEventListener('input', render);
   for (const id of ['premium', 'estimar']) el[id].addEventListener('change', render);
   for (const id of ['cruzar', 'ordemCompra']) el[id].addEventListener('change', () => {
-    el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
     if (pares.length) setStatus('Clique em Atualizar pra recalcular com essa opção.');
   });
   for (const id of ['tier', 'ench', 'slot']) el[id].addEventListener('change', () => {
@@ -1186,7 +1292,6 @@
   window.FlipBM = {
     aplicarFiltros(v) {
       restaurarFiltros(v);
-      el.ordemCompraTxt.textContent = el.ordemCompra.checked ? 'Por ordem de compra' : 'Na hora';
       try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosAtuais())); } catch { /* idem */ }
       render();
     },
