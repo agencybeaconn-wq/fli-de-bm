@@ -65,6 +65,7 @@
     --ease-out: cubic-bezier(.2, .8, .2, 1);
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; } /* senão display:grid/flex das classes vence o atributo e a seção "escondida" aparece */
   html, body { margin: 0; color: var(--vib-1); font-family: var(--font); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
   body {
     min-height: 100vh; padding: 28px 24px 56px;
