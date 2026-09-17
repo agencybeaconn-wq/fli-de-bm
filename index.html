@@ -152,15 +152,6 @@
   .multi-op:active { background: rgba(255, 255, 255, .14); }
   .multi-op.todos { margin-bottom: 4px; padding-bottom: 9px; border-bottom: 1px solid var(--divider); border-radius: var(--r-inner) var(--r-inner) 0 0; }
 
-  /* interruptor iOS */
-  .toggle { display: flex; align-items: center; gap: 10px; height: 40px; cursor: pointer; color: var(--vib-1); font-size: 14px; }
-  .toggle input { appearance: none; width: 42px; height: 26px; border-radius: 999px; background: var(--fill-2); box-shadow: inset 0 0 0 1px var(--ring); position: relative; cursor: pointer; transition: background .18s var(--ease-out); margin: 0; flex: none; }
-  .toggle input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--elev-1); transition: transform .18s var(--ease-out); }
-  .toggle input:checked { background: var(--accent); box-shadow: none; }
-  .toggle input:checked::after { transform: translateX(16px); }
-  .toggle:active input::after { transform: scaleX(1.15); transform-origin: left; }
-  .toggle:active input:checked::after { transform: translateX(13px) scaleX(1.15); transform-origin: right; }
-
   /* ---- ações ---- */
   .acoes { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--divider); }
   button.primario {
@@ -440,18 +431,24 @@
         </select>
       </div>
       <div class="campo">
-        <span class="grupo-label">Cidade sem preço</span>
-        <label class="toggle"><input id="estimar" type="checkbox" checked><span>Estimar</span></label>
+        <label for="estimar">Cidade sem preço</label>
+        <select id="estimar">
+          <option value="estimar" selected>Estimar</option>
+          <option value="nao">Só preço atual</option>
+        </select>
       </div>
       <div class="campo">
-        <span class="grupo-label">Qualidade</span>
-        <label class="toggle"><input id="cruzar" type="checkbox" checked><span>Cruzar qualidades</span></label>
+        <label for="cruzar">Qualidade do item</label>
+        <select id="cruzar">
+          <option value="cruzar" selected>Aceitar ordem menor</option>
+          <option value="igual">Só mesma qualidade</option>
+        </select>
       </div>
       <div class="campo">
         <label for="ordemCompra">Como comprar na cidade</label>
         <select id="ordemCompra">
-          <option value="nahora" selected>Na hora (paga a ordem de venda)</option>
-          <option value="ordem">Colocando ordem de compra</option>
+          <option value="nahora" selected>Na hora</option>
+          <option value="ordem">Ordem de compra</option>
         </select>
       </div>
       <div class="campo">
@@ -509,8 +506,8 @@
           <th class="num ord c-liq" data-ord="liquido" title="BM paga menos a taxa de venda"><span id="liqTxt">Líquido</span><span class="seta"></span></th>
           <th class="num ord c-lucro" data-ord="lucro" title="Líquido menos custo, por unidade">Lucro/un<span class="seta"></span></th>
           <th class="num ord c-roi ativo desc" data-ord="roi" title="Lucro dividido pelo custo">ROI<span class="seta"></span></th>
-          <th class="num ord" data-ord="bm7" title="Preço médio pago pelo BM e vendas por dia, últimos 7 dias">BM 7d<span class="seta"></span></th>
-          <th class="num ord" data-ord="qtd" title="Quantidade sugerida: cabe na prata, limitada às vendas por dia">Levar<span class="seta"></span></th>
+          <th class="num ord" data-ord="vendas" title="Quantas unidades o BM comprou por dia nos últimos 7 dias. Recomendação: levar até 30% disso.">Vendas/dia BM<span class="seta"></span></th>
+          <th class="num ord" data-ord="qtd" title="Sugestão: 30% das vendas por dia do BM, limitado pela prata. Edite se viu a ordem no jogo.">Levar<span class="seta"></span></th>
           <th class="num ord c-lucro" data-ord="potencial" title="Lucro por unidade vezes quantidade">Potencial<span class="seta"></span></th>
           <th class="ord" data-ord="idade" title="Idade do preço da cidade · idade do preço do BM">Idade<span class="seta"></span></th>
         </tr>
@@ -519,7 +516,7 @@
     </table>
     <div class="vazio" id="vazio">Nenhum dado carregado ainda.</div>
   </div>
-  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; com "cruzar qualidades", uma ordem de qualidade menor aceita seu item de qualidade maior (confirme uma vez no jogo). BM 7 dias = preço médio a que o BM comprou e vendas por dia. Levar = quanto cabe na prata limitado pelas vendas por dia; sem volume conhecido, sugere 1. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
+  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; com "cruzar qualidades", uma ordem de qualidade menor aceita seu item de qualidade maior (confirme uma vez no jogo). Vendas/dia BM = quantas unidades o BM comprou por dia nos últimos 7 dias; não é a quantidade da ordem atual (a API não mostra isso). Levar = recomendação de até 30% das vendas diárias, limitado pela prata; sem volume conhecido, 1. Média 7d, embaixo de BM paga, é o preço a que o BM de fato comprou. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
   </div>
 
   <div id="abaGuia" class="guia" hidden>
@@ -557,9 +554,9 @@
         <div class="cartao"><h3>Tier, Encantamento, Tipo</h3><p>Filtram o catálogo. Cada lista tem caixinhas: marque um ou vários. "Todos" marca tudo. Menos itens marcados = busca mais rápida.</p></div>
         <div class="cartao"><h3>Idade máx. preço BM / cidade</h3><p>Descarta preço velho. São separados de propósito: quem escaneia o BM aperta a idade do BM (1 hora) e afrouxa a da cidade, que vem de outros jogadores.</p></div>
         <div class="cartao"><h3>Taxa de venda no BM</h3><p>4% com premium, 8% sem. Entra no cálculo do líquido e, portanto, do lucro e do ROI.</p></div>
-        <div class="cartao"><h3>Cidade sem preço: Estimar</h3><p>Quando a cidade não tem preço registrado, a ferramenta estima pelo menor preço de outra cidade real ou pela média de vendas de 30 dias. É pista pra ir conferir, não pra comprar às cegas.</p></div>
-        <div class="cartao"><h3>Cruzar qualidades</h3><p>Uma ordem de compra aceita item da qualidade pedida ou melhor. Ligado, a ferramenta vende seu item Bom numa ordem Normal se ela paga mais. Confirme uma vez no jogo.</p></div>
-        <div class="cartao"><h3>Como comprar na cidade</h3><p>"Na hora" paga a menor ordem de venda e leva o item no ato. "Colocando ordem de compra" simula você deixando uma ordem abaixo do preço: mais barato, mas só rende se alguém vender pra ela. O cabeçalho da coluna Custo e o resumo dizem qual modo a tabela está mostrando.</p></div>
+        <div class="cartao"><h3>Cidade sem preço</h3><p>Quando a cidade não tem preço registrado, a ferramenta estima pelo menor preço de outra cidade real ou pela média de vendas de 30 dias. É pista pra ir conferir, não pra comprar às cegas.</p></div>
+        <div class="cartao"><h3>Qualidade do item</h3><p>Uma ordem de compra aceita item da qualidade pedida ou melhor. Em "Aceitar ordem menor", a ferramenta vende seu item Bom numa ordem Normal se ela paga mais. Confirme uma vez no jogo.</p></div>
+        <div class="cartao"><h3>Como comprar na cidade</h3><p>"Na hora" paga a menor ordem de venda e leva o item no ato. "Ordem de compra" simula você deixando uma ordem abaixo do preço: mais barato, mas só rende se alguém vender pra ela. O cabeçalho da coluna Custo e o resumo dizem qual modo a tabela está mostrando.</p></div>
         <div class="cartao"><h3>Buscar item</h3><p>Filtra a tabela pelo nome ou pelo código do item, sem nova busca.</p></div>
         <div class="cartao"><h3>Atualizar preços</h3><p>Busca os preços na API. Mudou servidor, cidade, tier, encantamento, tipo, qualidade ou modo de compra: clique de novo. Os outros filtros aplicam na hora.</p></div>
       </div>
@@ -571,12 +568,12 @@
       <ul class="colunas">
         <li><b class="c-custo">Custo</b>: o que você paga na cidade agora (menor ordem de venda). Embaixo, onde há registro do item mais barato entre as 7 cidades.</li>
         <li><b class="c-est">Estimado</b>: custo provável quando a cidade não tem preço, com a origem da estimativa.</li>
-        <li><b class="c-bm">BM paga</b>: a ordem de compra do Black Market. "ordem Normal" embaixo significa que seu item de qualidade maior vai nessa ordem.</li>
+        <li><b class="c-bm">BM paga</b>: a ordem de compra do Black Market. "ordem Normal" embaixo significa que seu item de qualidade maior vai nessa ordem. "média 7d" é o preço a que o BM de fato comprou na semana: acima disso é pico, vende logo.</li>
         <li><b class="c-liq">Líquido</b>: BM paga menos a taxa de venda.</li>
         <li><b class="c-lucro">Lucro/un</b>: líquido menos custo, por unidade.</li>
         <li><b class="c-roi">ROI</b>: lucro dividido pelo custo. Quanto cada prata investida rende. É a coluna mais importante quando a prata é limitada.</li>
-        <li><b>BM 7d</b>: preço médio a que o BM comprou esse item nos últimos 7 dias e quantas vendas por dia. Diz se a ordem atual está alta ou baixa e quantas unidades o BM costuma absorver.</li>
-        <li><b>Levar</b>: quantidade sugerida: cabe na prata, limitada pelas vendas por dia. Sem volume conhecido, 1, porque a API não mostra a quantidade da ordem. Você pode digitar outra.</li>
+        <li><b>Vendas/dia BM</b>: quantas unidades o BM comprou por dia nos últimos 7 dias. Não é a quantidade da ordem de agora, que a API não mostra. Embaixo vem a recomendação: leve até 30% disso, pra não encalhar.</li>
+        <li><b>Levar</b>: já vem com a recomendação (30% das vendas diárias, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem no jogo, digite a quantidade real.</li>
         <li><b class="c-lucro">Potencial</b>: lucro por unidade vezes a quantidade.</li>
         <li><b>Idade</b>: há quanto tempo cada preço foi visto (cidade · BM). ⚠ marca acima de 6 horas.</li>
       </ul>
@@ -586,7 +583,7 @@
     <section class="mat-card">
       <h2>Cesta: o plano da viagem</h2>
       <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem.</p>
-      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI e respeitando quantas unidades o BM compra por dia de cada item. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
+      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI e limitando cada item a 30% do que o BM compra por dia. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
     </section>
 
     <section class="mat-card">
@@ -638,6 +635,7 @@
   const CONCORRENCIA = 6;     // limite da API: 180 req/min
   const MAX_LINHAS = 300;
   const DIAS_BM = 7;
+  const FRACAO_DIA = 0.3;     // recomendação: levar até 30% do que o BM compra por dia (a API não mostra a quantidade da ordem)
   const DIAS_HISTORICO = 30;
   const CHAVE_FILTROS = 'flipbm.filtros';
 
@@ -909,7 +907,7 @@
     const cidadeSel = el.cidade.value;
     const modoTodas = cidadeSel === TODAS;
     const porOrdem = (el.ordemCompra.value === 'ordem');
-    const cruzar = el.cruzar.checked;
+    const cruzar = (el.cruzar.value !== 'igual');
     const cidadesAlvo = modoTodas ? Object.keys(CIDADES) : [cidadeSel];
     const origem = modoTodas ? 'Todas as cidades' : cidadeSel;
     const ids = [...catalogo.values()].filter((i) => passaSelecao(i, sel)).map((i) => i.id);
@@ -1034,10 +1032,10 @@
     return { liquido, lucro, roi: lucro / p.custo, idade: Date.now() - Math.min(p.custoData, p.bmData) };
   }
 
-  // Quanto levar: o que cabe na prata, limitado pelas vendas por dia do BM. Sem volume conhecido, 1 (a API não mostra a quantidade da ordem).
+  // Quanto levar: o que cabe na prata, limitado a 30% das vendas por dia do BM. Sem volume conhecido, 1 (a API não mostra a quantidade da ordem).
   function sugerirQtd(p, prata) {
     const cabe = prata ? Math.floor(prata / p.custo) : Infinity;
-    const teto = p.volDia !== null ? Math.max(1, Math.round(p.volDia)) : 1;
+    const teto = p.volDia !== null ? Math.max(1, Math.floor(p.volDia * FRACAO_DIA)) : 1;
     const n = Math.min(cabe, teto);
     return Number.isFinite(n) ? n : teto;
   }
@@ -1049,7 +1047,7 @@
     const lucroMin = Number(el.lucroMin.value) || 0;
     const idadeBmMs = Number(el.idadeBm.value) * 3600000;
     const idadeCidMs = Number(el.idadeCid.value) * 3600000;
-    const estimar = el.estimar.checked;
+    const estimar = (el.estimar.value !== 'nao');
     const agoraMs = Date.now();
     const busca = el.busca.value.trim().toLowerCase();
     const sel = selecao();
@@ -1149,7 +1147,7 @@
 
   function render() {
     const prata = prataAtual();
-    const estimar = el.estimar.checked;
+    const estimar = (el.estimar.value !== 'nao');
     el.prataTxt.textContent = prata ? fmt.format(prata) : '';
     el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
 
@@ -1157,7 +1155,7 @@
     // Valor de cada coluna ordenável; null (sem dado) vai sempre pro fim.
     const valor = {
       custo: (l) => l.custo, est: (l) => (l.est ? l.est.p : null), bm: (l) => l.bm, liquido: (l) => l.liquido,
-      lucro: (l) => l.lucro, roi: (l) => l.roi, bm7: (l) => l.bmMedia, qtd: (l) => l.qtd, potencial: (l) => l.potencial, idade: (l) => l.idade,
+      lucro: (l) => l.lucro, roi: (l) => l.roi, vendas: (l) => l.volDia, qtd: (l) => l.qtd, potencial: (l) => l.potencial, idade: (l) => l.idade,
     }[ordem];
     linhas.sort((a, b) => {
       const va = valor(a), vb = valor(b);
@@ -1201,12 +1199,12 @@
         </div></td>
         <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.real !== null && l.porOrdem ? '<br><span class="est">ordem que você coloca</span>' : ''}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
         <td class="num c-est">${l.est ? `${fmt.format(l.est.p)}<br><span class="badge-est">${escapar(l.est.txt)}</span>` : '—'}</td>
-        <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">ordem ${QUALIDADE[l.bmQ]}</span>` : ''}</td>
+        <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">ordem ${QUALIDADE[l.bmQ]}</span>` : ''}${l.bmMedia !== null ? `<span class="subtxt">média 7d ${fmt.format(l.bmMedia)}</span>` : ''}</td>
         <td class="num c-liq">${fmt.format(l.liquido)}</td>
         <td class="num c-lucro">+${fmt.format(l.lucro)}</td>
         <td class="num c-roi">${(l.roi * 100).toFixed(0)}%</td>
-        <td class="num">${l.bmMedia === null ? '—' : `${fmt.format(l.bmMedia)}<span class="subtxt">${volTxt}</span>`}</td>
-        <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${l.volDia === null ? 'Volume do BM desconhecido: sugerido 1. Se viu a quantidade da ordem no jogo, digite aqui.' : 'Cabe na prata, limitado às vendas por dia do BM.'}"></td>
+        <td class="num">${l.volDia === null ? `—<span class="subtxt">sem volume: leve 1</span>` : `${volTxt}<span class="subtxt">leve até ${fmt.format(Math.max(1, Math.floor(l.volDia * FRACAO_DIA)))} (30%)</span>`}</td>
+        <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${l.volDia === null ? 'Volume do BM desconhecido: sugerido 1. Se viu a quantidade da ordem no jogo, digite aqui.' : '30% das vendas por dia do BM, limitado pela prata. Se viu a ordem no jogo, digite a quantidade real.'}"></td>
         <td class="num c-lucro potencial">+${fmt.format(l.potencial)}</td>
         <td><span class="idade${velhoCid}">${idadeTxt(l.custoData)}</span> · <span class="idade${velhoBm}">${idadeTxt(l.bmData)}</span></td>
       </tr>`;
