@@ -187,6 +187,7 @@
   .cesta .titulo { color: var(--accent-2); font-weight: 650; }
   .cesta b { font-family: var(--mono); font-weight: 500; }
   .cesta .botoes { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+  .cesta .regra { flex-basis: 100%; font-size: 12.5px; color: var(--vib-3); }
   .legenda { display: flex; gap: 18px; flex-wrap: wrap; margin: 0 4px 10px; font-size: 13px; color: var(--vib-2); }
   .legenda span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: currentColor; vertical-align: -1px; }
 
@@ -474,6 +475,7 @@
   <div class="cesta mat-card" id="cesta" hidden>
     <span class="titulo">Cesta</span>
     <span id="cestaTxt">vazia. Marque linhas ou monte pela melhor ROI.</span>
+    <span id="cestaRegra" class="regra" hidden></span>
     <span class="botoes">
       <button type="button" class="secundario" id="montarPlano">Montar pela melhor ROI</button>
       <button type="button" class="secundario" id="salvarViagem">Salvar viagem</button>
@@ -506,7 +508,7 @@
           <th class="num ord c-liq" data-ord="liquido" title="BM paga menos a taxa de venda"><span id="liqTxt">Líquido</span><span class="seta"></span></th>
           <th class="num ord c-lucro" data-ord="lucro" title="Líquido menos custo, por unidade">Lucro/un<span class="seta"></span></th>
           <th class="num ord c-roi ativo desc" data-ord="roi" title="Lucro dividido pelo custo">ROI<span class="seta"></span></th>
-          <th class="num ord" data-ord="vendas" title="Quantas unidades o BM comprou por dia nos últimos 7 dias. Recomendação: levar até 30% disso.">Vendas/dia BM<span class="seta"></span></th>
+          <th class="num ord" data-ord="vendas" title="Unidades por dia: compradas pelo BM (leve até 30%) e negociadas na cidade (teto do que dá pra comprar lá)">Vendas/dia<span class="seta"></span></th>
           <th class="num ord" data-ord="qtd" title="Sugestão: 30% das vendas por dia do BM, limitado pela prata. Edite se viu a ordem no jogo.">Levar<span class="seta"></span></th>
           <th class="num ord c-lucro" data-ord="potencial" title="Lucro por unidade vezes quantidade">Potencial<span class="seta"></span></th>
           <th class="ord" data-ord="idade" title="Idade do preço da cidade · idade do preço do BM">Idade<span class="seta"></span></th>
@@ -516,7 +518,7 @@
     </table>
     <div class="vazio" id="vazio">Nenhum dado carregado ainda.</div>
   </div>
-  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; com "cruzar qualidades", uma ordem de qualidade menor aceita seu item de qualidade maior (confirme uma vez no jogo). Vendas/dia BM = quantas unidades o BM comprou por dia nos últimos 7 dias; não é a quantidade da ordem atual (a API não mostra isso). Levar = recomendação de até 30% das vendas diárias, limitado pela prata; sem volume conhecido, 1. Média 7d, embaixo de BM paga, é o preço a que o BM de fato comprou. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
+  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; "aceito como Normal" quer dizer que seu item de qualidade maior vai numa ordem Normal do BM porque ela paga mais (confirme uma vez no jogo). Vendas/dia = unidades compradas pelo BM por dia e negociadas na cidade por dia, nos últimos 7 dias; nenhuma das duas é a quantidade da ordem ou da listagem atual (a API não mostra isso). Levar = recomendação: até 30% das vendas do BM e até o que a cidade negocia por dia, limitado pela prata; sem volume conhecido, 1. Média 7d, embaixo de BM paga, é o preço a que o BM de fato comprou. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
   </div>
 
   <div id="abaGuia" class="guia" hidden>
@@ -568,12 +570,12 @@
       <ul class="colunas">
         <li><b class="c-custo">Custo</b>: o que você paga na cidade agora (menor ordem de venda). Embaixo, onde há registro do item mais barato entre as 7 cidades.</li>
         <li><b class="c-est">Estimado</b>: custo provável quando a cidade não tem preço, com a origem da estimativa.</li>
-        <li><b class="c-bm">BM paga</b>: a ordem de compra do Black Market. "ordem Normal" embaixo significa que seu item de qualidade maior vai nessa ordem. "média 7d" é o preço a que o BM de fato comprou na semana: acima disso é pico, vende logo.</li>
+        <li><b class="c-bm">BM paga</b>: a ordem de compra do Black Market. "aceito como Normal" embaixo significa que seu item de qualidade maior vai numa ordem do BM de qualidade Normal, porque ela paga mais. "média 7d" é o preço a que o BM de fato comprou na semana: acima disso é pico, vende logo.</li>
         <li><b class="c-liq">Líquido</b>: BM paga menos a taxa de venda.</li>
         <li><b class="c-lucro">Lucro/un</b>: líquido menos custo, por unidade.</li>
         <li><b class="c-roi">ROI</b>: lucro dividido pelo custo. Quanto cada prata investida rende. É a coluna mais importante quando a prata é limitada.</li>
-        <li><b>Vendas/dia BM</b>: quantas unidades o BM comprou por dia nos últimos 7 dias. Não é a quantidade da ordem de agora, que a API não mostra. Embaixo vem a recomendação: leve até 30% disso, pra não encalhar.</li>
-        <li><b>Levar</b>: já vem com a recomendação (30% das vendas diárias, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem no jogo, digite a quantidade real.</li>
+        <li><b>Vendas/dia</b>: quantas unidades o BM comprou por dia e quantas a cidade negociou por dia, nos últimos 7 dias. Nenhuma é a quantidade da ordem ou da listagem de agora, que a API não mostra. Embaixo vem a recomendação: até 30% do BM e até o que a cidade negocia, o menor dos dois.</li>
+        <li><b>Levar</b>: já vem com a recomendação (o menor entre 30% das vendas do BM e o volume diário da cidade, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem ou a listagem no jogo, digite a quantidade real.</li>
         <li><b class="c-lucro">Potencial</b>: lucro por unidade vezes a quantidade.</li>
         <li><b>Idade</b>: há quanto tempo cada preço foi visto (cidade · BM). ⚠ marca acima de 6 horas.</li>
       </ul>
@@ -583,7 +585,7 @@
     <section class="mat-card">
       <h2>Cesta: o plano da viagem</h2>
       <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem.</p>
-      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI e limitando cada item a 30% do que o BM compra por dia. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
+      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI, mas com quantidade realista por item (30% do que o BM compra por dia, o que a cidade negocia por dia e 25% da prata). Por isso um capuz de ROI altíssimo que a cidade mal negocia recebe pouco, e a prata desce pro próximo item. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
     </section>
 
     <section class="mat-card">
@@ -723,7 +725,9 @@
     for (const k of Object.keys(multi)) v[k] = multi[k].get();
     return v;
   }
+  let usuarioMexeu = false; // depois que o usuário mexe num controle, os filtros da conta não sobrescrevem
   function salvarFiltros() {
+    usuarioMexeu = true;
     const v = filtrosAtuais();
     try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(v)); } catch { /* sem storage (aba privada etc.): segue sem lembrar */ }
     window.Conta?.salvarFiltros(v); // na conta, quando logado
@@ -803,13 +807,15 @@
     return falhas;
   }
 
-  // Média ponderada pela quantidade e data da última venda de uma série do endpoint history.
+  // Média ponderada pela quantidade, data da última venda e unidades/dia nos últimos 7 dias, de uma série do endpoint history.
   function resumirHistorico(pontos) {
     const validos = pontos.filter((p) => p.item_count > 0 && p.avg_price > 0).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     if (!validos.length) return null;
     const qtd = validos.reduce((a, p) => a + p.item_count, 0);
     const media = validos.reduce((a, p) => a + p.avg_price * p.item_count, 0) / qtd;
-    return { media: Math.round(media), qtd, d: validos[validos.length - 1].timestamp };
+    const limite7 = Date.now() - 7 * 864e5;
+    const qtd7 = validos.filter((p) => Date.parse(p.timestamp + 'Z') >= limite7).reduce((a, p) => a + p.item_count, 0);
+    return { media: Math.round(media), qtd, d: validos[validos.length - 1].timestamp, porDia7: qtd7 / 7 };
   }
 
   // Melhor ordem do BM pra um item de qualidade `q`. Uma ordem de compra aceita item da qualidade pedida ou melhor.
@@ -877,6 +883,7 @@
             custo: usado.p, custoData: Date.parse(usado.d + 'Z'), fonte: real ? 'real' : 'est',
             bm: bm.p, bmQ: bm.q, bmData: Date.parse(bm.d + 'Z'),
             volDia: vol ? vol.porDia : null, bmMedia: vol ? vol.media : null,
+            volCidDia: modoTodas ? undefined : (e.histCid?.[q]?.porDia ?? null),
           });
         }
       }
@@ -963,7 +970,7 @@
     publicar();
     carregando = false;
     el.atualizar.disabled = false;
-    setStatus(`${origem} → Black Market · preços em ${seg()} · completando volume do BM…`);
+    setStatus(`${origem} → Black Market · preços em ${seg()} · completando volume do BM e da cidade…`);
 
     // Etapa 3: o que o BM comprou em 7 dias (preço médio e vendas por dia). Cache de 30 min por item.
     if (idsComBm.length) {
@@ -987,11 +994,11 @@
       publicar();
     }
 
-    // Etapa 4: média de vendas da cidade em 30 dias pra quem ficou sem preço em cidade nenhuma. Cache de 30 min.
-    if (!modoTodas && !porOrdem) {
-      const semPreco = idsComBm.filter((id) => { const e = dados.get(id); return !Object.keys(CIDADES).some((c) => temVenda(e, c)); });
+    // Etapa 4: histórico da cidade em 30 dias pra todo item com ordem no BM: dá a média de vendas (estimativa de custo
+    // quando não há preço) e quantas unidades a cidade negocia por dia (teto do que dá pra comprar lá). Cache de 30 min.
+    if (!modoTodas) {
       const chaveCid = (id) => `${base}|${CIDADES[cidadeSel]}|${id}`;
-      const faltam = semPreco.filter((id) => !lerCache(chaveCid(id)));
+      const faltam = idsComBm.filter((id) => !lerCache(chaveCid(id)));
       if (faltam.length) {
         const inicio = new Date(hoje.getTime() - DIAS_HISTORICO * 864e5);
         const recebidos = new Map();
@@ -1000,13 +1007,13 @@
             const r = resumirHistorico(h.data);
             if (!r) continue;
             if (!recebidos.has(h.item_id)) recebidos.set(h.item_id, {});
-            recebidos.get(h.item_id)[h.quality] = { p: r.media, d: r.d };
+            recebidos.get(h.item_id)[h.quality] = { p: r.media, d: r.d, porDia: r.porDia7 };
           }
-        }, 'Buscando histórico da cidade');
+        }, 'Buscando volume da cidade');
         if (!vivo()) return;
         for (const id of faltam) cacheHist.set(chaveCid(id), { porQ: recebidos.get(id) || {}, ts: Date.now() });
       }
-      for (const id of semPreco) { const porQ = lerCache(chaveCid(id)); if (porQ && Object.keys(porQ).length) entrada(id).histCid = porQ; }
+      for (const id of idsComBm) { const porQ = lerCache(chaveCid(id)); if (porQ && Object.keys(porQ).length) entrada(id).histCid = porQ; }
       publicar();
     }
 
@@ -1032,12 +1039,21 @@
     return { liquido, lucro, roi: lucro / p.custo, idade: Date.now() - Math.min(p.custoData, p.bmData) };
   }
 
-  // Quanto levar: o que cabe na prata, limitado a 30% das vendas por dia do BM. Sem volume conhecido, 1 (a API não mostra a quantidade da ordem).
+  // Teto realista de unidades: 30% do que o BM compra por dia E o que a cidade negocia por dia (a API não mostra a
+  // quantidade da ordem do BM nem das listagens da cidade). Sem nenhum volume conhecido, 1.
+  function tetoRealista(p) {
+    const tetoBm = p.volDia !== null ? Math.max(1, Math.floor(p.volDia * FRACAO_DIA)) : null;
+    let tetoCid = null, motivoCid = '';
+    if (p.volCidDia === null) { tetoCid = 1; motivoCid = 'cidade sem histórico de vendas: 1'; }
+    else if (p.volCidDia !== undefined) { tetoCid = Math.max(1, Math.floor(p.volCidDia)); motivoCid = `a cidade negocia ${fmt.format(tetoCid)}/dia`; }
+    if (tetoBm === null && tetoCid === null) return { teto: 1, motivo: 'sem volume conhecido: 1' };
+    if (tetoCid !== null && (tetoBm === null || tetoCid <= tetoBm)) return { teto: tetoCid, motivo: motivoCid };
+    return { teto: tetoBm, motivo: `30% das vendas/dia do BM (${fmt.format(tetoBm)})` };
+  }
   function sugerirQtd(p, prata) {
     const cabe = prata ? Math.floor(prata / p.custo) : Infinity;
-    const teto = p.volDia !== null ? Math.max(1, Math.floor(p.volDia * FRACAO_DIA)) : 1;
-    const n = Math.min(cabe, teto);
-    return Number.isFinite(n) ? n : teto;
+    const n = Math.min(cabe, tetoRealista(p).teto);
+    return Number.isFinite(n) ? n : tetoRealista(p).teto;
   }
   const qtdDe = (p, prata) => (qtdEditada.has(p.chave) ? qtdEditada.get(p.chave) : sugerirQtd(p, prata));
 
@@ -1067,17 +1083,45 @@
     return out;
   }
 
-  // Plano de compra: gasta a prata começando pelo maior ROI, respeitando quanto o BM compra por dia de cada item.
-  // Assim 10 itens de 500k com 70k de lucro ganham de 3 itens de 1,5M com 150k, e a prata em risco rende mais.
+  // ---- plano de compra ("Montar pela melhor ROI") ----
+  // Maior ROI primeiro, mas com juízo: cada linha recebe uma confiança que rebaixa estimativa, dado velho,
+  // volume desconhecido e lucro por unidade pequeno (custo de execução alto). Por item, o teto é 30% das
+  // vendas/dia do BM e 25% da prata, pra não concentrar tudo numa ordem que a API não sabe o tamanho.
+  // Cada quantidade guarda o motivo, mostrado embaixo de "Levar".
+  const PLANO = { fatiaPrata: 0.25, lucroMinUnidade: 5000, potencialMinFracao: 0.005 };
+  const motivos = new Map(); // chave -> por que o plano sugeriu essa quantidade
+
+  function confianca(l) {
+    const agora = Date.now(), seisHoras = 6 * 3600000;
+    let c = 1;
+    const porque = [];
+    if (l.fonte !== 'real') { c *= 0.6; porque.push('custo estimado'); }
+    if (agora - l.custoData > seisHoras) { c *= 0.8; porque.push('preço da cidade velho'); }
+    if (agora - l.bmData > seisHoras) { c *= 0.7; porque.push('preço do BM velho'); }
+    if (l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined)) { c *= 0.5; porque.push('sem volume conhecido'); }
+    if (l.lucro < PLANO.lucroMinUnidade) { c *= 0.5; porque.push('lucro por unidade pequeno'); }
+    return { c, porque };
+  }
+
   function montarPlano(linhas, prata) {
     const plano = new Map();
+    motivos.clear();
     if (!prata) return plano;
+    const fatia = prata * PLANO.fatiaPrata;
+    const potencialMinimo = Math.max(5000, prata * PLANO.potencialMinFracao);
     let resta = prata;
-    for (const l of linhas.slice().sort((a, b) => b.roi - a.roi)) {
-      if (l.lucro <= 0 || resta < l.custo) continue;
-      const n = Math.min(sugerirQtd(l, resta), Math.floor(resta / l.custo));
-      if (n <= 0) continue;
+    const candidatas = linhas.filter((l) => l.lucro > 0).map((l) => ({ l, ...confianca(l) })).sort((a, b) => b.l.roi * b.c - a.l.roi * a.c);
+    for (const { l, porque } of candidatas) {
+      if (resta < l.custo) continue;
+      const { teto: tetoDia, motivo: motivoTeto } = tetoRealista(l);
+      const tetoPrata = Math.floor(Math.min(resta, fatia) / l.custo);
+      const n = Math.min(tetoDia, tetoPrata);
+      if (n <= 0 || n * l.lucro < potencialMinimo) continue;
+      let limite;
+      if (n === tetoDia) limite = motivoTeto;
+      else limite = tetoPrata * l.custo > resta * 0.99 ? 'prata restante' : '25% da prata por item';
       plano.set(l.chave, n);
+      motivos.set(l.chave, porque.length ? `${limite} · ${porque.join(', ')}` : limite);
       resta -= n * l.custo;
     }
     return plano;
@@ -1100,13 +1144,20 @@
   }
 
   // ---- ícones: fila própria com timeout. O servidor de imagens do Albion é HTTP/1.1 e um ícone inexistente
-  // leva de 5 a 50 s pra responder 404; sem fila, meia dúzia desses trava as 6 conexões e nada mais carrega. ----
+  // leva de 5 a 50 s pra responder 404; sem fila, meia dúzia desses trava as 6 conexões e nada mais carrega.
+  // A tabela é redesenhada durante a carga progressiva: ícone que ficou órfão no meio do download não conta
+  // como falha (volta pra fila quando o item aparecer de novo). Falha real tenta mais uma vez depois de 15 s. ----
   const ICONE_URL = (id) => `https://render.albiononline.com/v1/item/${id}.png?size=40`;
-  const ICONES_AO_MESMO_TEMPO = 4;
-  const ICONE_TIMEOUT = 3000;
-  const iconeEstado = new Map(); // id -> 'ok' | 'falhou'
+  const ICONES_AO_MESMO_TEMPO = 6;
+  const ICONE_TIMEOUT = 6000;
+  const ICONE_NOVA_TENTATIVA = 15000;
+  const iconeEstado = new Map(); // id -> 'ok' | { falhou: timestamp, tentativas }
   const filaIcones = [];
   let iconesCarregando = 0;
+  const podeTentar = (id) => {
+    const e = iconeEstado.get(id);
+    return !e || (e !== 'ok' && e.tentativas < 2 && Date.now() - e.falhou > ICONE_NOVA_TENTATIVA);
+  };
   const observadorIcones = new IntersectionObserver((entradas) => {
     for (const e of entradas) if (e.isIntersecting) { observadorIcones.unobserve(e.target); filaIcones.push(e.target); bombearIcones(); }
   }, { root: document.querySelector('.tabela-wrap'), rootMargin: '240px 0px' });
@@ -1115,8 +1166,8 @@
       const wrap = filaIcones.shift();
       if (!wrap.isConnected) continue;
       const id = wrap.dataset.id;
-      if (iconeEstado.get(id) === 'falhou') continue;
       if (iconeEstado.get(id) === 'ok') { mostrarIcone(wrap); continue; }
+      if (!podeTentar(id)) continue;
       iconesCarregando++;
       const img = wrap.querySelector('img');
       let fim = false;
@@ -1125,8 +1176,12 @@
         fim = true;
         clearTimeout(timer);
         iconesCarregando--;
-        iconeEstado.set(id, ok ? 'ok' : 'falhou');
-        if (ok) wrap.classList.add('ok'); else img.removeAttribute('src'); // remover src cancela o download em andamento
+        if (ok) { iconeEstado.set(id, 'ok'); wrap.classList.add('ok'); }
+        else {
+          img.removeAttribute('src'); // remover src cancela o download em andamento
+          if (wrap.isConnected) { const ant = iconeEstado.get(id); iconeEstado.set(id, { falhou: Date.now(), tentativas: (ant && ant !== 'ok' ? ant.tentativas : 0) + 1 }); }
+          else iconeEstado.delete(id); // ficou órfão por redesenho: não é falha do ícone
+        }
         bombearIcones();
       };
       const timer = setTimeout(() => terminar(false), ICONE_TIMEOUT);
@@ -1139,9 +1194,8 @@
   function prepararIcones() {
     filaIcones.length = 0;
     for (const wrap of el.linhas.querySelectorAll('.icone')) {
-      const estado = iconeEstado.get(wrap.dataset.id);
-      if (estado === 'ok') mostrarIcone(wrap);
-      else if (estado !== 'falhou') observadorIcones.observe(wrap);
+      if (iconeEstado.get(wrap.dataset.id) === 'ok') mostrarIcone(wrap);
+      else if (podeTentar(wrap.dataset.id)) observadorIcones.observe(wrap);
     }
   }
 
@@ -1197,14 +1251,14 @@
           <span class="icone" data-id="${l.item.id}" data-tier="T${l.item.tier}${ench}"><img alt="" decoding="async"></span>
           <div><div class="nome">${escapar(l.item.nome)}</div><div class="meta"><span class="tier">T${l.item.tier}${ench}</span> · ${l.item.slot} · <span class="${l.q > 1 ? 'qual' : ''}">${QUALIDADE[l.q]}</span>${modoTodas ? ` · ${l.cidade}` : ''}</div></div>
         </div></td>
-        <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.real !== null && l.porOrdem ? '<br><span class="est">ordem que você coloca</span>' : ''}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
+        <td class="num c-custo">${l.real === null ? '—' : fmt.format(l.real)}${l.real !== null && l.porOrdem ? '<br><span class="est">sua ordem de compra</span>' : ''}${l.maisBarato ? `<span class="subtxt">${l.maisBarato.cidade === l.cidade ? 'mais barato aqui' : `mais barato: ${escapar(l.maisBarato.cidade)} ${fmt.format(l.maisBarato.p)}`}</span>` : ''}</td>
         <td class="num c-est">${l.est ? `${fmt.format(l.est.p)}<br><span class="badge-est">${escapar(l.est.txt)}</span>` : '—'}</td>
-        <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">ordem ${QUALIDADE[l.bmQ]}</span>` : ''}${l.bmMedia !== null ? `<span class="subtxt">média 7d ${fmt.format(l.bmMedia)}</span>` : ''}</td>
+        <td class="num c-bm">${fmt.format(l.bm)}${l.bmQ !== l.q ? `<br><span class="est">aceito como ${QUALIDADE[l.bmQ]}</span>` : ''}${l.bmMedia !== null ? `<span class="subtxt">média 7d ${fmt.format(l.bmMedia)}</span>` : ''}</td>
         <td class="num c-liq">${fmt.format(l.liquido)}</td>
         <td class="num c-lucro">+${fmt.format(l.lucro)}</td>
         <td class="num c-roi">${(l.roi * 100).toFixed(0)}%</td>
-        <td class="num">${l.volDia === null ? `—<span class="subtxt">sem volume: leve 1</span>` : `${volTxt}<span class="subtxt">leve até ${fmt.format(Math.max(1, Math.floor(l.volDia * FRACAO_DIA)))} (30%)</span>`}</td>
-        <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${l.volDia === null ? 'Volume do BM desconhecido: sugerido 1. Se viu a quantidade da ordem no jogo, digite aqui.' : '30% das vendas por dia do BM, limitado pela prata. Se viu a ordem no jogo, digite a quantidade real.'}"></td>
+        <td class="num">${l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined) ? `—<span class="subtxt">sem volume: leve 1</span>` : `BM ${l.volDia === null ? '—' : volTxt}<span class="subtxt">cidade ${l.volCidDia === null ? 'sem histórico' : l.volCidDia === undefined ? '—' : (l.volCidDia < 10 ? l.volCidDia.toFixed(1) : Math.round(l.volCidDia)) + '/dia'} · leve até ${fmt.format(tetoRealista(l).teto)}</span>`}</td>
+        <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${tetoRealista(l).motivo}, limitado pela prata. Se viu a ordem ou a listagem no jogo, digite a quantidade real.">${motivos.has(l.chave) ? `<span class="subtxt">${escapar(motivos.get(l.chave))}</span>` : ''}</td>
         <td class="num c-lucro potencial">+${fmt.format(l.potencial)}</td>
         <td><span class="idade${velhoCid}">${idadeTxt(l.custoData)}</span> · <span class="idade${velhoBm}">${idadeTxt(l.bmData)}</span></td>
       </tr>`;
@@ -1274,9 +1328,11 @@
     cesta.clear();
     for (const [k, n] of plano) { cesta.add(k); qtdEditada.set(k, n); }
     render();
+    $('cestaRegra').textContent = 'Regra: maior ROI primeiro, mas com quantidade realista: por item, até 30% do que o BM compra por dia, até o que a cidade negocia por dia e até 25% da prata. Assim o lucro total manda, não só o ROI. Estimativa, dado velho, sem volume e lucro pequeno por unidade entram por último. O motivo de cada quantidade está embaixo de Levar.';
+    $('cestaRegra').hidden = !plano.size;
     setStatus(plano.size ? `Plano montado: ${plano.size} itens pela melhor ROI dentro de ${fmt.format(prata)}.` : 'Nenhuma linha cabe na prata com os filtros atuais.', !plano.size);
   });
-  el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); render(); });
+  el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); motivos.clear(); $('cestaRegra').hidden = true; render(); });
 
   // Abas: Ferramenta, Guia e Admin (esta só aparece pra admin). Só mostra e esconde; nada é perdido ao trocar.
   const ABAS = { ferramenta: 'abaFerramenta', guia: 'abaGuia', admin: 'abaAdmin' };
@@ -1289,6 +1345,7 @@
   // Ponte com conta.js: filtros vindos da conta e a cesta pra salvar como viagem.
   window.FlipBM = {
     aplicarFiltros(v) {
+      if (usuarioMexeu) return; // o usuário já escolheu algo nesta abertura: a conta não desfaz
       restaurarFiltros(v);
       try { localStorage.setItem(CHAVE_FILTROS, JSON.stringify(filtrosAtuais())); } catch { /* idem */ }
       render();
