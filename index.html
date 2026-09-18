@@ -534,7 +534,7 @@
     </table>
     <div class="vazio" id="vazio">Nenhum dado carregado ainda.</div>
   </div>
-  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; "aceito como Normal" quer dizer que seu item de qualidade maior vai numa ordem Normal do BM porque ela paga mais (confirme uma vez no jogo). Vendas/dia = unidades compradas pelo BM por dia e negociadas na cidade por dia, nos últimos 7 dias; nenhuma das duas é a quantidade da ordem ou da listagem atual (a API não mostra isso). Levar = recomendação: até 30% das vendas do BM e até o que a cidade negocia por dia, limitado pela prata; sem volume conhecido, 1. Média 7d, embaixo de BM paga, é o preço a que o BM de fato comprou. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
+  <p class="nota">Custo = menor ordem de venda atual na cidade. No modo "por ordem de compra", é o preço da ordem que você colocaria (acima da maior ordem atual, nunca abaixo de 70% do preço de venda) mais 2,5% de taxa; o lucro só sai se a ordem preencher. Estimado = menor preço atual em outra cidade real, senão média de vendas da própria cidade em 30 dias; o lucro só usa o estimado quando não há custo atual. BM paga = maior ordem de compra do Black Market; "aceito como Normal" quer dizer que seu item de qualidade maior vai numa ordem Normal do BM porque ela paga mais (confirme uma vez no jogo). Vendas/dia = unidades compradas pelo BM por dia e negociadas na cidade por dia, nos últimos 7 dias; nenhuma das duas é a quantidade da ordem ou da listagem atual (a API não mostra isso). Levar = recomendação: até 30% das vendas do BM e até o que a cidade negocia por dia, com teto de 30 unidades por item e limitado pela prata; sem volume conhecido, até 5 e confira no jogo. Média 7d, embaixo de BM paga, é o preço a que o BM de fato comprou. Líquido = BM paga menos a taxa de venda escolhida (4% com premium, 8% sem); lucro, ROI e potencial saem do líquido. Dado mais velho que 6h aparece com ⚠.</p>
   </div>
 
   <div id="abaGuia" class="guia" hidden>
@@ -591,7 +591,7 @@
         <li><b class="c-lucro">Lucro/un</b>: líquido menos custo, por unidade.</li>
         <li><b class="c-roi">ROI</b>: lucro dividido pelo custo. Quanto cada prata investida rende. É a coluna mais importante quando a prata é limitada.</li>
         <li><b>Vendas/dia</b>: quantas unidades o BM comprou por dia e quantas a cidade negociou por dia, nos últimos 7 dias. Nenhuma é a quantidade da ordem ou da listagem de agora, que a API não mostra. Embaixo vem a recomendação: até 30% do BM e até o que a cidade negocia, o menor dos dois. Vendas/dia só existem se alguém abriu o histórico do item; ausência não é demanda zero.</li>
-        <li><b>Levar</b>: já vem com a recomendação (o menor entre 30% das vendas do BM e o volume diário da cidade, limitado pela prata). Sem volume conhecido, 1. Se você viu a ordem ou a listagem no jogo, digite a quantidade real. Quando o ROI é alto mas a quantidade ficou travada em 1 ou 2, aparece "confira a demanda no jogo": vale olhar quantas ordens o BM tem e quantas unidades a cidade lista, e levar mais se houver.</li>
+        <li><b>Levar</b>: já vem com a recomendação (o menor entre 30% das vendas do BM e o volume diário da cidade, limitado pela prata). Sem volume conhecido, até 5, com o aviso "confira a demanda no jogo": olhe quantas ordens o BM tem e quantas unidades a cidade lista, e ajuste. Se você viu a ordem ou a listagem no jogo, digite a quantidade real.</li>
         <li><b class="c-lucro">Potencial</b>: lucro por unidade vezes a quantidade.</li>
         <li><b>Idade</b>: há quanto tempo cada preço foi visto (cidade · BM). ⚠ marca acima de 6 horas.</li>
       </ul>
@@ -601,7 +601,7 @@
     <section class="mat-card">
       <h2>Cesta: o plano da viagem</h2>
       <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem. "Ver só a cesta" filtra a tabela pros itens marcados; "Ver todos os itens" volta.</p>
-      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta sozinho: gasta sua prata começando pelo maior ROI, mas com quantidade realista por item (30% do que o BM compra por dia, o que a cidade negocia por dia e 25% da prata). Só entram linhas com preço real na cidade; estimativa é pra ir conferir, e você marca na mão se quiser. Por isso um capuz de ROI altíssimo que a cidade mal negocia recebe pouco, e a prata desce pro próximo item. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
+      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta com foco: no máximo 12 itens e 30 unidades por item, escolhidos pelo lucro esperado da linha (lucro por unidade × quantidade realista × confiança), com ROI de 15% ou mais e até 25% da prata por item. Venda na hora pede isso: comprar 100 itens diferentes de 1 unidade não dá tempo, e comprar 1 unidade de um item de 10 mil de lucro não paga a viagem. Só entram linhas com preço real na cidade; estimativa é pra ir conferir, e você marca na mão se quiser. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
     </section>
 
     <section class="mat-card">
@@ -666,6 +666,8 @@
   const MAX_LINHAS = 300;
   const DIAS_BM = 7;
   const FRACAO_DIA = 0.3;     // recomendação: levar até 30% do que o BM compra por dia (a API não mostra a quantidade da ordem)
+  const SEM_VOLUME_PADRAO = 5; // sem histórico de vendas (que só existe se alguém abriu o histórico do item), leva até 5 e confere no jogo
+  const MAX_UNIDADES = 30;     // venda na hora: comprar e vender mais que isso de um item só não é realista, mesmo com volume alto
   const DIAS_HISTORICO = 30;
   const CHAVE_FILTROS = 'flipbm.filtros';
 
@@ -1092,18 +1094,24 @@
 
   // Teto realista de unidades: 30% do que o BM compra por dia E o que a cidade negocia por dia (a API não mostra a
   // quantidade da ordem do BM nem das listagens da cidade). Sem nenhum volume conhecido, 1.
-  function tetoRealista(p) {
+  let tetoRealista = function (p) {
     const tetoBm = p.volDia !== null ? Math.max(1, Math.floor(p.volDia * FRACAO_DIA)) : null;
-    let tetoCid = null, motivoCid = '';
-    if (p.volCidDia === null) { tetoCid = 1; motivoCid = 'cidade sem histórico de vendas: 1'; }
-    else if (p.volCidDia !== undefined) { tetoCid = Math.max(1, Math.floor(p.volCidDia)); motivoCid = p.volCidDia < 1 ? `a cidade negocia ${p.volCidDia.toFixed(1)}/dia (mínimo 1)` : `a cidade negocia ${fmt.format(tetoCid)}/dia`; }
-    if (tetoBm === null && tetoCid === null) return { teto: 1, motivo: 'sem volume conhecido: 1' };
-    if (tetoCid !== null && (tetoBm === null || tetoCid <= tetoBm)) return { teto: tetoCid, motivo: motivoCid };
-    return { teto: tetoBm, motivo: `30% das vendas/dia do BM (${fmt.format(tetoBm)})` };
-  }
+    const cidadeConhecida = p.volCidDia !== null && p.volCidDia !== undefined;
+    if (tetoBm === null && !cidadeConhecida) return { teto: SEM_VOLUME_PADRAO, motivo: `sem volume conhecido: até ${SEM_VOLUME_PADRAO}, confira no jogo`, incerto: true };
+    if (!cidadeConhecida) { // BM conhecido, cidade sem histórico: segue o BM até o teto padrão
+      const teto = Math.min(tetoBm, SEM_VOLUME_PADRAO);
+      return { teto, motivo: teto === tetoBm ? `30% das vendas/dia do BM (${fmt.format(tetoBm)})` : `cidade sem histórico: até ${SEM_VOLUME_PADRAO}, confira no jogo`, incerto: teto !== tetoBm };
+    }
+    const tetoCid = Math.max(1, Math.floor(p.volCidDia));
+    const motivoCid = p.volCidDia < 1 ? `a cidade negocia ${p.volCidDia.toFixed(1)}/dia (mínimo 1)` : `a cidade negocia ${fmt.format(tetoCid)}/dia`;
+    if (tetoBm === null || tetoCid <= tetoBm) return { teto: tetoCid, motivo: motivoCid, incerto: false };
+    return { teto: tetoBm, motivo: `30% das vendas/dia do BM (${fmt.format(tetoBm)})`, incerto: false };
+  };
+  const tetoRealistaBase = tetoRealista;
+  tetoRealista = (p) => { const r = tetoRealistaBase(p); return r.teto > MAX_UNIDADES ? { teto: MAX_UNIDADES, motivo: `teto de ${MAX_UNIDADES} unidades por item (venda na hora)`, incerto: r.incerto } : r; };
   // ROI alto com quantidade travada em 1 ou 2 pelo volume conhecido: pode ser oportunidade escondida. Vale olhar no jogo
   // quantas ordens o BM tem e quantas unidades a cidade lista; se houver, levar mais.
-  const valeConferir = (l) => l.roi >= 0.5 && l.lucro >= 5000 && tetoRealista(l).teto <= 2;
+  const valeConferir = (l) => l.roi >= 0.5 && l.lucro >= 5000 && (tetoRealista(l).incerto || tetoRealista(l).teto <= 2);
   function sugerirQtd(p, prata) {
     const cabe = prata ? Math.floor(prata / p.custo) : Infinity;
     const n = Math.min(cabe, tetoRealista(p).teto);
@@ -1139,11 +1147,11 @@
   }
 
   // ---- plano de compra ("Montar pela melhor ROI") ----
-  // Maior ROI primeiro, mas com juízo: cada linha recebe uma confiança que rebaixa estimativa, dado velho,
-  // volume desconhecido e lucro por unidade pequeno (custo de execução alto). Por item, o teto é 30% das
-  // vendas/dia do BM e 25% da prata, pra não concentrar tudo numa ordem que a API não sabe o tamanho.
+  // Venda na hora pede foco: poucos itens, cada um com lucro que compense a compra e a viagem. Ordena pelo lucro
+  // esperado da linha (lucro por unidade × quantidade realista × confiança), exige ROI mínimo, limita o número de
+  // itens e 25% da prata por item. Estimativa, dado velho, sem volume e lucro pequeno por unidade perdem confiança.
   // Cada quantidade guarda o motivo, mostrado embaixo de "Levar".
-  const PLANO = { fatiaPrata: 0.25, lucroMinUnidade: 5000, potencialMinimo: 5000 };
+  const PLANO = { fatiaPrata: 0.25, lucroMinUnidade: 5000, potencialMinimo: 5000, maxItens: 12, roiMin: 0.15 };
   const motivos = new Map(); // chave -> por que o plano sugeriu essa quantidade
 
   function confianca(l) {
@@ -1153,7 +1161,7 @@
     if (l.fonte !== 'real') { c *= 0.6; porque.push('custo estimado'); }
     if (agora - l.custoData > seisHoras) { c *= 0.8; porque.push('preço da cidade velho'); }
     if (agora - l.bmData > seisHoras) { c *= 0.7; porque.push('preço do BM velho'); }
-    if (l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined)) { c *= 0.5; porque.push('sem volume conhecido'); }
+    if (l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined)) { c *= 0.6; porque.push('sem volume conhecido'); }
     if (l.lucro < PLANO.lucroMinUnidade) { c *= 0.5; porque.push('lucro por unidade pequeno'); }
     return { c, porque };
   }
@@ -1166,16 +1174,23 @@
     const potencialMinimo = Math.max(PLANO.potencialMinimo, Number(el.lucroMin.value) || 0);
     let resta = prata;
     // Só preço real: estimativa é pra ir conferir, não pra entrar num plano de compra "na hora".
-    const candidatas = linhas.filter((l) => l.lucro > 0 && l.fonte === 'real').map((l) => ({ l, ...confianca(l) })).sort((a, b) => b.l.roi * b.c - a.l.roi * a.c);
-    for (const { l, porque } of candidatas) {
+    const candidatas = linhas
+      .filter((l) => l.fonte === 'real' && l.lucro > 0 && l.roi >= PLANO.roiMin)
+      .map((l) => {
+        const { teto, motivo } = tetoRealista(l);
+        const { c, porque } = confianca(l);
+        const qtdMax = Math.min(teto, Math.max(1, Math.floor(fatia / l.custo)));
+        return { l, c, porque, teto, motivo, qtdMax, esperado: l.lucro * qtdMax * c };
+      })
+      .sort((a, b) => b.esperado - a.esperado);
+    for (const { l, porque, teto, motivo, qtdMax } of candidatas) {
+      if (plano.size >= PLANO.maxItens) break;
       if (resta < l.custo) continue;
-      const { teto: tetoDia, motivo: motivoTeto } = tetoRealista(l);
-      const tetoPrata = Math.max(1, Math.floor(Math.min(resta, fatia) / l.custo)); // cabe na prata restante: pelo menos 1
-      const n = Math.min(tetoDia, tetoPrata);
+      const n = Math.min(qtdMax, Math.floor(resta / l.custo));
       if (n <= 0 || n * l.lucro < potencialMinimo) continue;
       let limite;
-      if (n === tetoDia) limite = motivoTeto;
-      else limite = tetoPrata * l.custo > resta * 0.99 ? 'prata restante' : '25% da prata por item';
+      if (n === teto) limite = motivo;
+      else limite = n * l.custo > resta * 0.99 ? 'prata restante' : '25% da prata por item';
       plano.set(l.chave, n);
       motivos.set(l.chave, (porque.length ? `${limite} · ${porque.join(', ')}` : limite) + (valeConferir(l) ? ' · confira a demanda no jogo' : ''));
       resta -= n * l.custo;
@@ -1326,7 +1341,7 @@
         <td class="num c-liq">${fmt.format(l.liquido)}</td>
         <td class="num c-lucro">+${fmt.format(l.lucro)}</td>
         <td class="num c-roi">${(l.roi * 100).toFixed(0)}%</td>
-        <td class="num">${l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined) ? `—<span class="subtxt">sem volume: leve 1</span>${alerta}` : `BM ${l.volDia === null ? '—' : volTxt}<span class="subtxt">cidade ${l.volCidDia === null ? 'sem histórico' : l.volCidDia === undefined ? '—' : (l.volCidDia < 10 ? l.volCidDia.toFixed(1) : Math.round(l.volCidDia)) + '/dia'} · leve até ${fmt.format(tetoRealista(l).teto)}</span>${alerta}`}</td>
+        <td class="num">${l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined) ? `—<span class="subtxt">sem volume: até ${SEM_VOLUME_PADRAO}</span>${alerta}` : `BM ${l.volDia === null ? '—' : volTxt}<span class="subtxt">cidade ${l.volCidDia === null ? 'sem histórico' : l.volCidDia === undefined ? '—' : (l.volCidDia < 10 ? l.volCidDia.toFixed(1) : Math.round(l.volCidDia)) + '/dia'} · leve até ${fmt.format(tetoRealista(l).teto)}</span>${alerta}`}</td>
         <td class="num"><input type="number" class="qtd" min="0" step="1" value="${l.qtd}" data-chave="${l.chave}" title="${tetoRealista(l).motivo}, limitado pela prata. Se viu a ordem ou a listagem no jogo, digite a quantidade real.">${motivos.has(l.chave) ? `<span class="subtxt">${escapar(motivos.get(l.chave))}</span>` : ''}</td>
         <td class="num c-lucro potencial">+${fmt.format(l.potencial)}</td>
         <td><span class="idade${velhoCid}">${idadeTxt(l.custoData)}</span> · <span class="idade${velhoBm}">${idadeTxt(l.bmData)}</span></td>
@@ -1422,9 +1437,9 @@
     cesta.clear();
     for (const [k, n] of plano) { cesta.add(k); qtdEditada.set(k, n); }
     render();
-    $('cestaRegra').textContent = 'Regra: maior ROI primeiro, mas com quantidade realista: por item, até 30% do que o BM compra por dia, até o que a cidade negocia por dia e até 25% da prata. Assim o lucro total manda, não só o ROI. Estimativa, dado velho, sem volume e lucro pequeno por unidade entram por último. O motivo de cada quantidade está embaixo de Levar.';
+    $('cestaRegra').textContent = 'Regra: foco em poucos itens que rendem. Ordena pelo lucro esperado da linha (lucro por unidade × quantidade realista × confiança), exige ROI de 15% ou mais, no máximo 12 itens, 30 unidades e 25% da prata por item. Quantidade realista: 30% do que o BM compra por dia e o que a cidade negocia por dia; sem volume conhecido, até 5 e confira no jogo. Só preço real entra. O motivo de cada quantidade está embaixo de Levar.';
     $('cestaRegra').hidden = !plano.size;
-    setStatus(plano.size ? `Plano montado: ${plano.size} itens pela melhor ROI dentro de ${fmt.format(prata)}, só com preço real. Clique em "Ver só a cesta" pra ver só eles.` : 'Nenhuma linha com preço real cabe na prata com os filtros atuais.', !plano.size);
+    setStatus(plano.size ? `Plano montado: ${plano.size} itens pelo melhor lucro esperado dentro de ${fmt.format(prata)}, só com preço real. Clique em "Ver só a cesta" pra ver só eles.` : 'Nenhuma linha com preço real, ROI de 15% ou mais e lucro que compense cabe na prata com os filtros atuais.', !plano.size);
   });
   el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); motivos.clear(); soCesta = false; $('cestaRegra').hidden = true; render(); });
   el.soCesta.addEventListener('click', () => { soCesta = !soCesta; render(); });

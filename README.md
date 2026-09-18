@@ -31,7 +31,7 @@ Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.c
 
 - `profiles` (papel `admin` ou `user`, bloqueado), `user_settings` (filtros), `trips` (viagens). RLS em toda tabela: usuário só lê e escreve o próprio; admin lê todos os perfis e bloqueia.
 - O papel vai no JWT pelo Auth Hook `public.custom_access_token_hook`. Precisa ser ativado no painel: Authentication → Hooks → Custom Access Token → função `custom_access_token_hook`.
-- O dono vira admin pelo email definido na trigger `criar_perfil` (migration).
+- O dono vira admin pelos emails definidos na trigger `criar_perfil` (migrations 0001 e 0003).
 
 ## Deploy
 
