@@ -15,7 +15,7 @@ Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.c
 
 1. Uma requisição por lote de itens traz BM + as 7 cidades reais. A tabela aparece aqui e o botão libera.
 2. Em seguida, o histórico do BM (7 dias) traz preço médio e vendas por dia; depois, o histórico da cidade (30 dias) traz a média de vendas (estimativa de custo) e quantas unidades a cidade negocia por dia. Os dois ficam em cache por 30 minutos: a segunda atualização só busca preços.
-3. Toda atualização volta a ordenar por ROI. Trocar "Como comprar" ou "Qualidade do item" recalcula na hora, sem nova busca (os dois preços e as 5 ordens do BM já estão em memória); trocar cidade ou servidor rebusca sozinho. O botão Atualizar só libera no fim da carga, pra duas buscas não correrem juntas.
+3. Toda atualização volta a ordenar por ROI. Trocar "Qualidade do item" recalcula na hora, sem nova busca; trocar cidade ou servidor rebusca sozinho. O botão Atualizar só libera no fim da carga, pra duas buscas não correrem juntas.
 4. Limite da API: 180 requisições por minuto e 300 a cada 5 minutos. Num 429 a página respeita o `Retry-After` e pausa todos os lotes juntos.
 5. Ícones vêm do servidor de imagens do Albion por uma fila de 6 com timeout de 6 s (um ícone inexistente demora até 50 s pra dar 404 e travaria a fila). Ícone órfão por redesenho da tabela volta pra fila; falha real tenta de novo após 15 s; quem falha mostra o tier no lugar.
 
