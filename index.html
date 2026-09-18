@@ -219,6 +219,8 @@
   .c-roi { color: var(--c-roi); }
   td.c-lucro, td.c-roi { font-weight: 500; }
   th.sel, td.sel { width: 36px; padding-right: 0; }
+  thead th:nth-child(2) { width: 100%; } /* Item absorve a sobra; as outras ficam no tamanho do conteúdo, sem buraco no meio */
+  tbody td:nth-child(2) { white-space: normal; min-width: 220px; } /* nome do item quebra linha em vez de forçar rolagem horizontal */
   tbody td { padding: 9px 10px; border-bottom: 1px solid var(--divider); white-space: nowrap; vertical-align: middle; }
   tbody tr:last-child td { border-bottom: 0; }
   tbody tr { transition: background .12s var(--ease-out); }
@@ -455,6 +457,15 @@
         </select>
       </div>
       <div class="campo">
+        <label for="auto">Atualizar sozinho</label>
+        <select id="auto">
+          <option value="0" selected>Desligado</option>
+          <option value="60">A cada 1 min</option>
+          <option value="120">A cada 2 min</option>
+          <option value="300">A cada 5 min</option>
+        </select>
+      </div>
+      <div class="campo">
         <label for="busca">Buscar item</label>
         <input id="busca" type="search" placeholder="nome ou id">
       </div>
@@ -471,6 +482,7 @@
     <span class="est" id="rModo">compra na hora</span>
     <span><b id="rEstimadas">0</b> com custo estimado</span>
     <span>cobertura: BM <b id="rCobBm">0</b> · cidade <b id="rCobCid">0</b> dos <b id="rItens">0</b> itens</span>
+    <span>dado mais novo: BM <b id="rFrescoBm">—</b> · cidade <b id="rFrescoCid">—</b></span>
     <span>atualizado às <b id="rHora">—</b></span>
   </div>
 
@@ -592,6 +604,17 @@
     </section>
 
     <section class="mat-card">
+      <h2>Por que o preço da página pode não bater com o jogo</h2>
+      <ul class="colunas">
+        <li><b>Atraso de 1 a 3 minutos.</b> O que o Albion Data Client captura passa por uma fila antes de aparecer na API. Escaneou e voltou em 1 minuto: ainda não chegou. O resumo mostra "dado mais novo: BM há X min"; quando esse número cair, a sua captura entrou. "Atualizar sozinho" a cada 1 min faz a página buscar sem você clicar.</li>
+        <li><b>Horários em blocos de 5 minutos.</b> A API arredonda o horário do preço pra baixo, então a idade pode aparecer até 5 minutos maior do que é.</li>
+        <li><b>A ordem do BM sobe com o tempo.</b> O preço da ordem cresce até alguém vender e cai depois. Entre a captura e você abrir o item, ele pode ter mudado.</li>
+        <li><b>"aceito como Normal".</b> Se seu item é Bom e a linha mostra esse aviso, o preço é da ordem Normal do BM, que paga mais que a ordem Bom. No jogo, compare com a ordem Normal.</li>
+        <li><b>Passou rápido demais.</b> O cliente só captura a página de ordens que ficou visível. Categoria que você não abriu não entra.</li>
+      </ul>
+    </section>
+
+    <section class="mat-card">
       <h2>Cuidados</h2>
       <ul class="colunas">
         <li>A API não informa a quantidade da ordem do BM. Confira no jogo antes de comprar em lote.</li>
@@ -649,7 +672,7 @@
     servidor: $('servidor'), cidade: $('cidade'), prata: $('prata'), prataTxt: $('prataTxt'), lucroMin: $('lucroMin'),
     tier: $('tier'), ench: $('ench'), slot: $('slot'), idadeBm: $('idadeBm'), idadeCid: $('idadeCid'),
     premium: $('premium'), liqTxt: $('liqTxt'), estimar: $('estimar'), cruzar: $('cruzar'),
-    ordemCompra: $('ordemCompra'), custoTxt: $('custoTxt'), rModo: $('rModo'), busca: $('busca'), atualizar: $('atualizar'),
+    ordemCompra: $('ordemCompra'), custoTxt: $('custoTxt'), rModo: $('rModo'), auto: $('auto'), rFrescoBm: $('rFrescoBm'), rFrescoCid: $('rFrescoCid'), busca: $('busca'), atualizar: $('atualizar'),
     barra: $('barra'), status: $('status'), resumo: $('resumo'), rOportunidades: $('rOportunidades'), rEstimadas: $('rEstimadas'),
     rCobBm: $('rCobBm'), rCobCid: $('rCobCid'), rItens: $('rItens'), rHora: $('rHora'),
     cesta: $('cesta'), cestaTxt: $('cestaTxt'), montarPlano: $('montarPlano'), soCesta: $('soCesta'), limparCesta: $('limparCesta'),
@@ -722,7 +745,7 @@
   };
 
   // ---- filtros lembrados entre aberturas (conveniência local; só os controles, nunca preços) ----
-  const CAMPOS_SALVOS = ['servidor', 'cidade', 'prata', 'lucroMin', 'idadeBm', 'idadeCid', 'premium', 'estimar', 'cruzar', 'ordemCompra'];
+  const CAMPOS_SALVOS = ['servidor', 'cidade', 'prata', 'lucroMin', 'idadeBm', 'idadeCid', 'premium', 'estimar', 'cruzar', 'ordemCompra', 'auto'];
   function filtrosAtuais() {
     const v = {};
     for (const id of CAMPOS_SALVOS) v[id] = el[id].type === 'checkbox' ? el[id].checked : el[id].value;
@@ -958,6 +981,11 @@
       el.rCobBm.textContent = fmt.format(cobertura.bm);
       el.rCobCid.textContent = fmt.format(cobertura.cid);
       el.rHora.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      // Idade do dado mais novo carregado. A API arredonda horários pra blocos de 5 min e leva 1 a 3 min pra ingerir:
+      // logo depois de escanear, isso mostra se a captura já chegou.
+      const maisNovo = (datas) => (datas.length ? 'há ' + idadeTxt(Math.max(...datas)) : '—');
+      el.rFrescoBm.textContent = maisNovo(pares.map((p) => p.bmData));
+      el.rFrescoCid.textContent = maisNovo(pares.filter((p) => p.fonte === 'real').map((p) => p.custoData));
       el.custoTxt.textContent = porOrdem ? 'Custo (por ordem)' : 'Custo (na hora)';
       el.rModo.textContent = porOrdem ? 'tabela: colocando ordem de compra' : 'tabela: compra na hora';
       el.resumo.hidden = false;
@@ -1295,7 +1323,16 @@
   el.liqTxt.textContent = `Líquido (−${Math.round(taxaAtual() * 100)}%)`;
 
   el.atualizar.addEventListener('click', atualizar);
+  let ultimaAtualizacao = 0;
+  const atualizarOriginal = atualizar;
+  setInterval(() => {
+    const cada = Number(el.auto.value) * 1000;
+    if (!cada || carregando || !pares.length || document.visibilityState !== 'visible') return;
+    if (Date.now() - ultimaAtualizacao >= cada) { ultimaAtualizacao = Date.now(); atualizarOriginal(); }
+  }, 5000);
+  el.atualizar.addEventListener('click', () => { ultimaAtualizacao = Date.now(); });
   for (const id of ['prata', 'lucroMin', 'idadeBm', 'idadeCid', 'busca']) el[id].addEventListener('input', render);
+  el.auto.addEventListener('change', () => { ultimaAtualizacao = Date.now(); });
   for (const id of ['premium', 'estimar']) el[id].addEventListener('change', render);
   for (const id of ['cruzar', 'ordemCompra']) el[id].addEventListener('change', () => {
     if (pares.length) setStatus('Clique em Atualizar pra recalcular com essa opção.');
