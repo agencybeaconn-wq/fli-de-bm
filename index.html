@@ -601,7 +601,7 @@
     <section class="mat-card">
       <h2>Cesta: o plano da viagem</h2>
       <p>Marque a caixinha das linhas que vai comprar. A cesta soma o investimento (a prata que vai estar em risco na estrada), o lucro esperado e o ROI da viagem. "Ver só a cesta" filtra a tabela pros itens marcados; "Ver todos os itens" volta.</p>
-      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta com foco: no máximo 12 itens e 30 unidades por item, escolhidos pelo lucro esperado da linha (lucro por unidade × quantidade realista × confiança), com ROI de 15% ou mais e até 25% da prata por item. Venda na hora pede isso: comprar 100 itens diferentes de 1 unidade não dá tempo, e comprar 1 unidade de um item de 10 mil de lucro não paga a viagem. Só entram linhas com preço real na cidade; estimativa é pra ir conferir, e você marca na mão se quiser. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
+      <p><b class="chip">Montar pela melhor ROI</b> monta a cesta com equilíbrio entre ROI e lucro, gastando a prata toda: ROI de 15% ou mais, e o lucro por unidade exigido cresce com a bag (com 8 milhões, primeiro só entra item que rende 20 mil ou mais por unidade; itens menores só completam a prata que sobrar). Dentro disso manda o lucro esperado da linha, com até 30 unidades e 25% da prata por item. Venda na hora pede isso: uma bag de 8 milhões não pode virar 70 armaduras T4 de 2 mil de lucro. Só entram linhas com preço real na cidade; estimativa é pra ir conferir, e você marca na mão se quiser. A lógica: com 5 milhões, 10 itens de 500 mil que rendem 70 mil cada (700 mil) ganham de 3 itens de 1,5 milhão que rendem 150 mil cada (450 mil). Depois ajuste a quantidade na coluna Levar, se quiser.</p>
     </section>
 
     <section class="mat-card">
@@ -1147,11 +1147,15 @@
   }
 
   // ---- plano de compra ("Montar pela melhor ROI") ----
-  // Venda na hora pede foco: poucos itens, cada um com lucro que compense a compra e a viagem. Ordena pelo lucro
-  // esperado da linha (lucro por unidade × quantidade realista × confiança), exige ROI mínimo, limita o número de
-  // itens e 25% da prata por item. Estimativa, dado velho, sem volume e lucro pequeno por unidade perdem confiança.
+  // Equilíbrio entre ROI e lucro, sem limite de itens, gastando a prata toda:
+  // 1) ROI mínimo de 15% (piso, não critério de ordem).
+  // 2) O lucro por unidade exigido cresce com a bag: primeiro entram itens que rendem pelo menos 0,25% da prata
+  //    por unidade (8 M → 20 mil/un); só se sobrar prata entram os de 0,1%; e por último os acima de 5 mil.
+  //    É isso que impede 70 itens T4 de 2 mil na mesma bag de um item de 2 M.
+  // 3) Dentro de cada nível, ordena pelo lucro esperado da linha (lucro/un × quantidade realista × confiança).
+  // 4) Por item: quantidade realista (30% do BM por dia, o que a cidade negocia, teto de 30) e 25% da prata.
   // Cada quantidade guarda o motivo, mostrado embaixo de "Levar".
-  const PLANO = { fatiaPrata: 0.25, lucroMinUnidade: 5000, potencialMinimo: 5000, maxItens: 12, roiMin: 0.15 };
+  const PLANO = { fatiaPrata: 0.25, roiMin: 0.15, niveisLucroUnidade: [0.0025, 0.001, 0], lucroUnidadeMin: 5000 };
   const motivos = new Map(); // chave -> por que o plano sugeriu essa quantidade
 
   function confianca(l) {
@@ -1162,7 +1166,6 @@
     if (agora - l.custoData > seisHoras) { c *= 0.8; porque.push('preço da cidade velho'); }
     if (agora - l.bmData > seisHoras) { c *= 0.7; porque.push('preço do BM velho'); }
     if (l.volDia === null && (l.volCidDia === null || l.volCidDia === undefined)) { c *= 0.6; porque.push('sem volume conhecido'); }
-    if (l.lucro < PLANO.lucroMinUnidade) { c *= 0.5; porque.push('lucro por unidade pequeno'); }
     return { c, porque };
   }
 
@@ -1171,29 +1174,43 @@
     motivos.clear();
     if (!prata) return plano;
     const fatia = prata * PLANO.fatiaPrata;
-    const potencialMinimo = Math.max(PLANO.potencialMinimo, Number(el.lucroMin.value) || 0);
+    const lucroMinUsuario = Number(el.lucroMin.value) || 0;
     let resta = prata;
     // Só preço real: estimativa é pra ir conferir, não pra entrar num plano de compra "na hora".
-    const candidatas = linhas
+    const base = linhas
       .filter((l) => l.fonte === 'real' && l.lucro > 0 && l.roi >= PLANO.roiMin)
-      .map((l) => {
-        const { teto, motivo } = tetoRealista(l);
-        const { c, porque } = confianca(l);
-        const qtdMax = Math.min(teto, Math.max(1, Math.floor(fatia / l.custo)));
-        return { l, c, porque, teto, motivo, qtdMax, esperado: l.lucro * qtdMax * c };
-      })
-      .sort((a, b) => b.esperado - a.esperado);
-    for (const { l, porque, teto, motivo, qtdMax } of candidatas) {
-      if (plano.size >= PLANO.maxItens) break;
-      if (resta < l.custo) continue;
-      const n = Math.min(qtdMax, Math.floor(resta / l.custo));
-      if (n <= 0 || n * l.lucro < potencialMinimo) continue;
-      let limite;
-      if (n === teto) limite = motivo;
-      else limite = n * l.custo > resta * 0.99 ? 'prata restante' : '25% da prata por item';
-      plano.set(l.chave, n);
-      motivos.set(l.chave, (porque.length ? `${limite} · ${porque.join(', ')}` : limite) + (valeConferir(l) ? ' · confira a demanda no jogo' : ''));
-      resta -= n * l.custo;
+      .map((l) => { const { teto, motivo, incerto } = tetoRealista(l); const { c, porque } = confianca(l); return { l, c, porque, teto, motivo, incerto }; });
+    const gastoItem = new Map();    // id do item -> prata já alocada (todas as qualidades)
+    const incertasItem = new Map(); // id do item -> unidades sem volume conhecido já alocadas
+    for (const [nivel, fracao] of PLANO.niveisLucroUnidade.entries()) {
+      const piso = Math.max(PLANO.lucroUnidadeMin, prata * fracao, lucroMinUsuario);
+      const candidatas = base
+        .filter((x) => !plano.has(x.l.chave) && x.l.lucro >= piso)
+        .map((x) => { const qtdMax = Math.min(x.teto, Math.max(1, Math.floor(fatia / x.l.custo))); return { ...x, qtdMax, esperado: x.l.lucro * qtdMax * x.c }; })
+        .sort((a, b) => b.esperado - a.esperado);
+      for (const { l, porque, teto, motivo, incerto } of candidatas) {
+        if (resta < l.custo) continue;
+        const id = l.item.id;
+        const porFatia = Math.floor((fatia - (gastoItem.get(id) || 0)) / l.custo);
+        const porIncerteza = incerto ? SEM_VOLUME_PADRAO - (incertasItem.get(id) || 0) : Infinity;
+        const porPrata = Math.floor(resta / l.custo);
+        const n = Math.min(teto, porFatia, porIncerteza, porPrata);
+        if (n <= 0) continue;
+        let limite;
+        if (n === teto) limite = motivo;
+        else if (n === porIncerteza) limite = `até ${SEM_VOLUME_PADRAO} no item inteiro sem volume conhecido`;
+        else if (n === porFatia) limite = '25% da prata por item (todas as qualidades)';
+        else limite = 'prata restante';
+        const extras = porque.slice();
+        if (nivel > 0) extras.push('entrou pra completar a prata');
+        if (valeConferir(l)) extras.push('confira a demanda no jogo');
+        plano.set(l.chave, n);
+        motivos.set(l.chave, extras.length ? limite + ' · ' + extras.join(', ') : limite);
+        resta -= n * l.custo;
+        gastoItem.set(id, (gastoItem.get(id) || 0) + n * l.custo);
+        if (incerto) incertasItem.set(id, (incertasItem.get(id) || 0) + n);
+      }
+      if (!base.some((x) => !plano.has(x.l.chave) && x.l.custo <= resta)) break;
     }
     return plano;
   }
@@ -1437,9 +1454,9 @@
     cesta.clear();
     for (const [k, n] of plano) { cesta.add(k); qtdEditada.set(k, n); }
     render();
-    $('cestaRegra').textContent = 'Regra: foco em poucos itens que rendem. Ordena pelo lucro esperado da linha (lucro por unidade × quantidade realista × confiança), exige ROI de 15% ou mais, no máximo 12 itens, 30 unidades e 25% da prata por item. Quantidade realista: 30% do que o BM compra por dia e o que a cidade negocia por dia; sem volume conhecido, até 5 e confira no jogo. Só preço real entra. O motivo de cada quantidade está embaixo de Levar.';
+    $('cestaRegra').textContent = 'Regra: equilíbrio entre ROI e lucro, gastando a prata toda. ROI mínimo de 15%. O lucro por unidade exigido cresce com a bag: primeiro entram itens que rendem pelo menos 0,25% da prata por unidade; só se sobrar prata entram os de 0,1%; por último os acima de 5 mil (marcados "entrou pra completar a prata"). Dentro de cada nível, manda o lucro esperado da linha (lucro/un × quantidade realista × confiança). Por item: 30% do que o BM compra por dia, o que a cidade negocia, teto de 30 unidades e 25% da prata; sem volume conhecido, até 5 e confira no jogo. Só preço real entra. O motivo de cada quantidade está embaixo de Levar.';
     $('cestaRegra').hidden = !plano.size;
-    setStatus(plano.size ? `Plano montado: ${plano.size} itens pelo melhor lucro esperado dentro de ${fmt.format(prata)}, só com preço real. Clique em "Ver só a cesta" pra ver só eles.` : 'Nenhuma linha com preço real, ROI de 15% ou mais e lucro que compense cabe na prata com os filtros atuais.', !plano.size);
+    setStatus(plano.size ? `Plano montado: ${plano.size} itens, equilíbrio entre ROI e lucro dentro de ${fmt.format(prata)}, só com preço real. Clique em "Ver só a cesta" pra ver só eles.` : 'Nenhuma linha com preço real, ROI de 15% ou mais e lucro de pelo menos 5 mil por unidade cabe na prata com os filtros atuais.', !plano.size);
   });
   el.limparCesta.addEventListener('click', () => { cesta.clear(); qtdEditada.clear(); motivos.clear(); soCesta = false; $('cestaRegra').hidden = true; render(); });
   el.soCesta.addEventListener('click', () => { soCesta = !soCesta; render(); });
