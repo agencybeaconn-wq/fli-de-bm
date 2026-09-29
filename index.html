@@ -680,6 +680,7 @@
       <ol class="passos">
         <li>Baixe em <a href="https://github.com/ao-data/albiondata-client/releases" target="_blank" rel="noopener">github.com/ao-data/albiondata-client/releases</a> (arquivo <b class="chip">albiondata-client-amd64-installer.exe</b>).</li>
         <li>Na instalação, aceite instalar o <b>Npcap</b> e marque <b class="chip">Install Npcap in WinPcap API-compatible Mode</b>. Sem isso o cliente não captura nada.</li>
+        <li><b>Servidor novo do jogo (desde o fim de setembro de 2026):</b> o Americas passou a responder pelo IP 85.234.70.x e o cliente 0.1.59 não reconhece esse endereço, então captura mas descarta tudo sem avisar (o log mostra "Sending" e nunca "Successfully sent"). Inicie o cliente com o parâmetro <b class="chip">-i https+pow://pow.west.albion-online-data.com</b> (crie um atalho com ele) até o cliente ganhar uma versão corrigida.</li>
         <li>Abra o cliente antes de jogar (ele pede permissão de administrador e fica perto do relógio).</li>
         <li>No jogo, abra o Black Market em Caerleon e passe pelas categorias que te interessam. Faça o mesmo no mercado da cidade onde vai comprar.</li>
         <li>Aqui, coloque <b class="chip">Idade máx. preço BM</b> em 1 hora e clique em Atualizar. O que você acabou de escanear aparece com idade de minutos.</li>
