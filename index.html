@@ -304,6 +304,11 @@
   .craft-cartoes .cartao b { display: block; margin-top: 4px; font-family: var(--mono); font-size: 20px; font-weight: 500; }
   .craft-cartoes .cartao span { font-size: 12.5px; color: var(--vib-2); }
   .craft-cartoes .cartao.destaque { background: var(--accent-soft); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .45); }
+  .venda-matriz thead th:first-child { width: auto; }
+  .venda-matriz tbody td { padding: 4px; border-bottom: 0; vertical-align: top; }
+  .venda-matriz tbody td:first-child { padding: 12px 12px 0 8px; min-width: 0; font-weight: 600; white-space: nowrap; }
+  .venda-matriz .craft-cel { width: 100%; min-width: 128px; }
+  .venda-matriz .craft-cel .cid { color: var(--c-lucro); }
 
   /* ---- abas (controle segmentado) ---- */
   .marca { display: flex; flex-direction: column; gap: 6px; }
@@ -644,7 +649,7 @@
       </div>
       <p class="craft-retorno" id="craftVendaResumo"></p>
     </div>
-    <div class="craft-cidades venda" id="craftVendaCidades"></div>
+    <div class="tabela-wrap" id="craftVendaCidades"></div>
     <div class="craft-preco" id="craftPrecoLinha">
       <label>Preço por unidade em <b id="craftCidVendaTxt"></b> <input id="craftPrecoVenda" type="number" class="qtd" min="0" step="1"></label>
       <span class="ajuda" id="craftPrecoVendaIdade"></span>
@@ -737,7 +742,7 @@
       <p>Digite o nome de um item, recurso ou artefato e escolha na lista. Aparece o item com os encantamentos disponíveis (T4, .1, .2, .3, .4) pra trocar num clique, a qualidade (equipamento), a quantidade a fazer e se você usa foco.</p>
       <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada linha mostra compra, retorno esperado e custo líquido; embaixo, os totais.</p>
       <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,2%. Artefato nunca retorna. Taxa da estação é a que o dono cobra, por unidade; você digita.</p>
-      <p><b>Vender.</b> O item aparece com o preço em cada cidade: quanto a maior ordem de compra paga (venda na hora), a menor ordem de venda, a média de 7 dias e as vendas por dia. Quem paga mais fica verde e já vem escolhido; clique em outra cidade pra vender lá. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
+      <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
 
     <section class="mat-card">
@@ -1534,7 +1539,7 @@
   // Receitas vêm de receitas.js (gerado do dump oficial), carregado só quando a aba abre. Preços vêm da API; o preço
   // unitário de cada linha é editável. Nenhuma quantidade é inferida; retorno é a fórmula do jogo.
   const TIPO_TXT = { bruto: 'recurso bruto', refinado: 'recurso refinado', artefato: 'artefato', outro: 'material' };
-  const craft = { pronto: false, familias: [], familia: null, ench: 0, precos: null, hist: null, cidadeDe: new Map(), manual: new Map(), modo: new Map(), cidVenda: null, manualVenda: null };
+  const craft = { pronto: false, familias: [], familia: null, ench: 0, precos: null, hist: null, cidadeDe: new Map(), manual: new Map(), modo: new Map(), cidVenda: null, qualVenda: null, manualVenda: null };
   const c = (id) => $('craft' + id);
   const craftStatus = (msg, erro = false) => { c('Status').textContent = msg; c('Status').classList.toggle('erro', erro); };
   const semAcento = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -1654,15 +1659,15 @@
       if (inp) { const v = num(inp); if (v === null) craft.manual.delete(inp.dataset.manual); else craft.manual.set(inp.dataset.manual, v); }
       if (inp || ev.target.matches('[data-ret-refino], [data-taxa-refino]')) calcular();
     });
-    c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio')) return; craft.cidVenda = cel.dataset.cid; craft.manualVenda = null; renderVenda(); calcular(); });
+    c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio') || !cel.dataset.q) return; craft.cidVenda = cel.dataset.cid; craft.qualVenda = Number(cel.dataset.q); craft.manualVenda = null; renderVenda(); calcular(); });
     c('PrecoVenda').addEventListener('input', () => { craft.manualVenda = num(c('PrecoVenda')); calcular(); });
-    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.manualVenda = null; renderVenda(); calcular(); });
+    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null; renderVenda(); calcular(); });
   }
 
   function escolherFamilia(f) {
     craft.familia = f;
     craft.ench = Math.min(...Object.keys(f.variantes).map(Number));
-    craft.cidadeDe.clear(); craft.manual.clear(); craft.modo.clear(); craft.cidVenda = null; craft.manualVenda = null;
+    craft.cidadeDe.clear(); craft.manual.clear(); craft.modo.clear(); craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null;
     c('Busca').value = f.nome;
     mostrarItem();
     buscarCraft();
@@ -1844,33 +1849,54 @@
 
   function renderVenda() {
     const id = itemAtual(), R = window.ALBION_RECEITAS;
-    const temReceita = !!R.r[id];
+    const temReceita = !!R.r[id], equip = catalogo.has(id);
     const lado = c('ModoVenda').value === 'ordem' ? 'venda' : 'compra';
+    const outroLado = lado === 'compra' ? 'venda' : 'compra';
+    const cidades = Object.keys(CIDADES);
     c('VendaTitulo').textContent = temReceita ? 'Vender' : 'Preços por cidade';
     c('VendaCtl').hidden = !temReceita; c('PrecoLinha').hidden = !temReceita; c('Nota').hidden = !temReceita;
-    const linhas = Object.keys(CIDADES).map((cid) => ({ cid, compra: precoEm(id, cid, 'compra'), venda: precoEm(id, cid, 'venda'), h: histEm(id, cid) }));
-    const melhor = linhas.filter((x) => x[lado]).sort((a, b) => b[lado].p - a[lado].p)[0] || null;
-    const maisBarato = linhas.filter((x) => x.venda).sort((a, b) => a.venda.p - b.venda.p)[0] || null;
-    let sel = craft.cidVenda; if (!sel && melhor) sel = melhor.cid;
-    c('VendaCidades').innerHTML = linhas.map((x) => `<button type="button" class="craft-cel${x[lado] ? '' : ' vazio'}${temReceita && melhor && x.cid === melhor.cid ? ' melhor' : ''}${temReceita && x.cid === sel ? ' sel' : ''}" data-cid="${x.cid}"><span class="cid">${x.cid}</span>
-      <b>${x[lado] ? fmt.format(x[lado].p) : '—'}</b><small>${lado === 'compra' ? 'ordem de compra' : 'ordem de venda'}${qualTxt(id, x[lado])}${x[lado] ? ' · ' + idadeHtml(x[lado].d) : ''}</small>
-      <small>${lado === 'compra' ? 'venda' : 'ordem de compra'}: ${x[lado === 'compra' ? 'venda' : 'compra'] ? fmt.format(x[lado === 'compra' ? 'venda' : 'compra'].p) + qualTxt(id, x[lado === 'compra' ? 'venda' : 'compra']) : '—'}</small>
-      <small>${x.h ? `média 7d ${fmt.format(x.h.media)} · ${porDiaTxt(x.h.porDia)}/dia` : 'sem vendas em 7 dias'}</small></button>`).join('');
+    const celHtml = (x, extra, sel, cls) => `<button type="button" class="craft-cel${x ? '' : ' vazio'}${sel ? ' sel' : ''}${cls || ''}" ${extra}>${cls ? `<span class="cid">${lado === 'compra' ? 'paga mais' : 'menor'}</span>` : ''}<b>${x ? fmt.format(x.p) : '—'}</b>${x ? idadeHtml(x.d) : '<span class="idade">sem preço</span>'}</button>`;
+    let selCid = null, selQ = null, tabela;
+    if (temReceita) {
+      // Matriz cidade × qualidade marcada: o preço de cada qualidade separado, com idade e histórico daquela qualidade.
+      const quals = equip ? qualsDe(id) : [1];
+      const cel = (cid, q) => { const porQ = craft.precos?.get(id)?.[cid]?.[q]; return { p: porQ?.[lado] || null, outro: porQ?.[outroLado] || null, h: craft.hist?.[cid]?.[q] || null }; };
+      let melhor = null;
+      for (const cid of cidades) for (const q of quals) { const x = cel(cid, q).p; if (x && (!melhor || (lado === 'compra' ? x.p > melhor.p : x.p < melhor.p))) melhor = { cid, q, p: x.p }; }
+      selCid = craft.cidVenda; selQ = craft.qualVenda;
+      if (!selCid || !quals.includes(selQ) || !cel(selCid, selQ).p) { selCid = melhor ? melhor.cid : null; selQ = melhor ? melhor.q : null; }
+      tabela = `<table class="craft-tabela venda-matriz"><thead><tr><th>Cidade</th>${quals.map((q) => `<th>${equip ? QUALIDADE[q] : (lado === 'compra' ? 'Maior ordem de compra' : 'Menor ordem de venda')}</th>`).join('')}</tr></thead><tbody>${cidades.map((cid) => `<tr><td>${cid}</td>${quals.map((q) => {
+        const x = cel(cid, q);
+        const eMelhor = melhor && melhor.cid === cid && melhor.q === q;
+        return `<td><button type="button" class="craft-cel${x.p ? '' : ' vazio'}${eMelhor ? ' melhor' : ''}${cid === selCid && q === selQ ? ' sel' : ''}" data-cid="${cid}" data-q="${q}">${eMelhor ? `<span class="cid">${lado === 'compra' ? 'paga mais' : 'menor preço'}</span>` : ''}<b>${x.p ? fmt.format(x.p.p) : '—'}</b>${x.p ? idadeHtml(x.p.d) : '<span class="idade">sem preço</span>'}<small>${x.outro ? `${outroLado === 'venda' ? 'venda' : 'ordem de compra'} ${fmt.format(x.outro.p)}` : ''}</small><small>${x.h ? `média 7d ${fmt.format(x.h.media)} · ${porDiaTxt(x.h.porDia)}/dia` : 'sem vendas em 7 dias'}</small></button></td>`;
+      }).join('')}</tr>`).join('')}</tbody></table>`;
+    } else {
+      // Sem receita: menor ordem de venda e maior ordem de compra por cidade (melhor entre as qualidades marcadas).
+      const lin = cidades.map((cid) => ({ cid, venda: precoEm(id, cid, 'venda'), compra: precoEm(id, cid, 'compra'), h: histEm(id, cid) }));
+      const maisBarata = lin.filter((x) => x.venda).sort((a, b) => a.venda.p - b.venda.p)[0] || null;
+      const pagaMaisL = lin.filter((x) => x.compra).sort((a, b) => b.compra.p - a.compra.p)[0] || null;
+      const celS = (x, cls, rot) => `<button type="button" class="craft-cel${x ? '' : ' vazio'}${cls ? ' melhor' : ''}">${cls ? `<span class="cid">${rot}</span>` : ''}<b>${x ? fmt.format(x.p) : '—'}</b>${x ? idadeHtml(x.d) : '<span class="idade">sem preço</span>'}${x && equip ? `<small>${QUALIDADE[x.q]}</small>` : ''}</button>`;
+      tabela = `<table class="craft-tabela venda-matriz"><thead><tr><th>Cidade</th><th>Menor ordem de venda</th><th>Maior ordem de compra</th><th>Média 7 dias · vendas/dia</th></tr></thead><tbody>${lin.map((x) => `<tr><td>${x.cid}</td><td>${celS(x.venda, x === maisBarata, 'mais barato')}</td><td>${celS(x.compra, x === pagaMaisL, 'paga mais')}</td><td class="num">${x.h ? `${fmt.format(x.h.media)} · ${porDiaTxt(x.h.porDia)}/dia` : '—'}</td></tr>`).join('')}</tbody></table>`;
+    }
+    c('VendaCidades').innerHTML = tabela;
+    const lin = cidades.map((cid) => ({ cid, compra: precoEm(id, cid, 'compra'), venda: precoEm(id, cid, 'venda'), h: histEm(id, cid) }));
     const resumo = [];
+    const maisBarato = lin.filter((x) => x.venda).sort((a, b) => a.venda.p - b.venda.p)[0] || null;
     if (maisBarato) resumo.push(`Mais barato pra comprar pronto: ${maisBarato.cid}, ${fmt.format(maisBarato.venda.p)}${qualTxt(id, maisBarato.venda)} (há ${idadeTxt(maisBarato.venda.d)}).`);
-    const pagaMais = linhas.filter((x) => x.compra).sort((a, b) => b.compra.p - a.compra.p)[0] || null;
+    const pagaMais = lin.filter((x) => x.compra).sort((a, b) => b.compra.p - a.compra.p)[0] || null;
     if (pagaMais) resumo.push(`Quem paga mais na hora: ${pagaMais.cid}, ${fmt.format(pagaMais.compra.p)}${qualTxt(id, pagaMais.compra)} (há ${idadeTxt(pagaMais.compra.d)}).`);
-    const mediaBaixa = linhas.filter((x) => x.h).sort((a, b) => a.h.media - b.h.media)[0] || null;
+    const mediaBaixa = lin.filter((x) => x.h).sort((a, b) => a.h.media - b.h.media)[0] || null;
     if (mediaBaixa) resumo.push(`Mais barato na média de 7 dias: ${mediaBaixa.cid}, ${fmt.format(mediaBaixa.h.media)}, ${porDiaTxt(mediaBaixa.h.porDia)} vendidas por dia.`);
     if (!resumo.length) resumo.push('Nenhuma cidade tem preço registrado nas últimas 24 h nem vendas em 7 dias.');
     if (!temReceita) resumo.push('Este item não tem receita de craft.');
+    if (temReceita && equip) resumo.push('Cada coluna é uma qualidade; clique na célula pra vender por aquele preço. ⚠ é preço com mais de 1 hora.');
     c('VendaResumo').textContent = resumo.join(' ');
     if (temReceita) {
-      const p = sel ? precoEm(id, sel, lado) : null;
-      c('CidVendaTxt').textContent = sel || 'nenhuma cidade';
+      const p = selCid && selQ ? craft.precos?.get(id)?.[selCid]?.[selQ]?.[lado] || null : null;
+      c('CidVendaTxt').textContent = selCid ? `${selCid}${equip ? ' · ' + QUALIDADE[selQ] : ''}` : 'nenhuma cidade';
       c('PrecoVenda').value = craft.manualVenda ?? (p ? p.p : '');
       c('PrecoVenda').placeholder = p ? '' : 'sem preço: digite';
-      c('PrecoVendaIdade').textContent = p ? `${lado === 'venda' ? 'menor ordem de venda' : 'maior ordem de compra'}${qualTxt(id, p)} · há ${idadeTxt(p.d)}` : 'sem preço na API: digite o que viu no jogo';
+      c('PrecoVendaIdade').textContent = p ? `${lado === 'venda' ? 'menor ordem de venda' : 'maior ordem de compra'} · há ${idadeTxt(p.d)}` : 'sem preço na API: digite o que viu no jogo';
     }
     c('Venda').hidden = false;
   }
