@@ -9,6 +9,8 @@ Ferramenta pra achar itens que valem comprar no mercado de uma cidade real e ven
 3. A tabela lista só o que dá lucro após a taxa de venda (4% premium, 8% sem), ordenada por ROI. A aba **Guia** explica cada parte.
 4. **Montar pela melhor ROI** monta a cesta com até N itens (campo ao lado do botão, padrão 20), uma unidade cada, do maior ROI pro menor, dentro da prata; o lucro por unidade exigido cresce com a bag, e cada ordem do BM conta uma vez. Quantidade é sempre 1 porque a API não mostra a quantidade de nenhuma ordem; quem viu mais no jogo digita em Levar. **Salvar viagem** guarda a cesta na conta.
 
+5. **Aba Craft**: busca qualquer item, recurso ou artefato e mostra, por cidade, a menor ordem de venda e a maior ordem de compra de agora (com a idade do dado), a média de 7 dias e as vendas por dia. Se o item tem receita, a calculadora monta o custo comprando os materiais em X, refinando em Y (retorno e taxa da estação), craftando em C e vendendo em F (na hora ou por ordem, com ou sem premium). Todo preço vem da API e é editável; retorno usa a fórmula do jogo (bônus ÷ (1 + bônus)) com os presets 15,2 / 24,8 / 36,7 / 43,5 / 47,9 / 53,9%; artefato não retorna.
+
 Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.com/), direto do navegador de cada usuário. A conta guarda só filtros e viagens; preço nunca é guardado.
 
 ## Como a atualização funciona
@@ -25,6 +27,7 @@ Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.c
 - `conta.js`: login, cadastro, perfil, filtros por conta, viagens e painel admin (Supabase JS via CDN).
 - `config.js`: URL do projeto Supabase e chave publishable (pública por desenho; tudo passa por RLS).
 - `items.js`: catálogo gerado do dump oficial. Regenerar quando o jogo ganhar itens: `node scripts/gerar-catalogo.js`.
+- `receitas.js`: receitas de craft e refino, recursos e artefatos (dump bruto + nomes PT-BR), carregado só quando a aba Craft abre. Regenerar junto: `node scripts/gerar-receitas.js`.
 - `supabase/migrations/0001_contas.sql`: tabelas, RLS, trigger de perfil e Auth Hook. `0002_endurecimento.sql`: admin só altera `bloqueado` (nunca a própria linha), bloqueio vale na hora (policy consulta a tabela), search_path fixo.
 
 ## Contas e papéis
