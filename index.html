@@ -306,6 +306,7 @@
   .craft-cartoes .cartao.destaque { background: var(--accent-soft); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .45); }
   .venda-matriz { table-layout: fixed; } /* colunas de qualidade com a mesma largura */
   .venda-matriz thead th:first-child { width: 130px; }
+  .venda-matriz thead th:nth-child(2) { width: auto; } /* a regra geral dá 100% à 2ª coluna (Item); aqui as qualidades dividem igual */
   .venda-matriz tbody td { padding: 4px; border-bottom: 0; vertical-align: top; }
   .venda-matriz tbody td:first-child { padding: 12px 12px 0 8px; min-width: 0; font-weight: 600; white-space: nowrap; }
   .venda-matriz .craft-cel { width: 100%; min-width: 128px; }
