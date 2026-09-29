@@ -311,6 +311,7 @@
   .venda-matriz tbody td:first-child { padding: 12px 12px 0 8px; min-width: 0; font-weight: 600; white-space: nowrap; }
   .venda-matriz .craft-cel { width: 100%; min-width: 128px; }
   .venda-matriz .craft-cel .cid { color: var(--c-lucro); }
+  .venda-matriz .craft-cel.melhor .cid::after { content: none; } /* o rótulo já diz "paga mais" ou "menor preço" */
 
   /* ---- abas (controle segmentado) ---- */
   .marca { display: flex; flex-direction: column; gap: 6px; }
