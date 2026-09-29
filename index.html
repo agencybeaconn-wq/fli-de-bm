@@ -606,10 +606,6 @@
         <label for="craftQtd">Quantidade a fazer</label>
         <input id="craftQtd" type="number" min="1" step="1" value="10">
       </div>
-      <div class="campo">
-        <label for="craftFoco">Uso foco</label>
-        <select id="craftFoco"><option value="nao" selected>Não</option><option value="sim">Sim (+59% de bônus)</option></select>
-      </div>
     </div>
     <div class="craft-item" id="craftItem" hidden>
       <img class="craft-icone grande" id="craftItemIcone" alt="" width="64" height="64">
@@ -630,13 +626,10 @@
       <h3>Materiais: onde comprar cada um</h3>
       <div class="craft-ctl">
         <label>Comprar tudo em <select id="craftTudoEm"></select></label>
-        <label>Refino em <select id="craftCidRefino"></select></label>
-        <label>Taxa do refino <input id="craftTaxaRefino" type="number" class="qtd" min="0" step="1" value="0" title="Prata por unidade refinada, cobrada pelo dono da estação"></label>
-        <label>Craft em <select id="craftCidCraft"></select></label>
-        <label>Bônus de craft na cidade <select id="craftBonusCraft" title="O painel da estação mostra se a cidade tem bônus pra este item"><option value="nao" selected>Não</option><option value="sim">Sim (+15%)</option></select></label>
+        <label>Retorno no craft <input id="craftRetCraft" type="number" class="qtd" min="0" max="99" step="0.1" value="15.2" title="Copie a taxa de retorno do painel da estação no jogo: ela já conta cidade, bônus diário e foco"> %</label>
         <label>Taxa do craft <input id="craftTaxaCraft" type="number" class="qtd" min="0" step="1" value="0" title="Prata por item feito, cobrada pelo dono da estação"></label>
       </div>
-      <p class="craft-retorno" id="craftRetornoTxt"></p>
+      <p class="craft-retorno">Retorno: copie a taxa do painel da estação no jogo (ela já conta cidade, bônus diário e foco). Sem bônus nenhum é 15,2%. Artefato não retorna. Taxa da estação é a que o dono cobra; você digita.</p>
     </div>
     <div id="craftMateriais"></div>
     <div class="craft-cartoes" id="craftTotais"></div>
@@ -657,7 +650,7 @@
       <span class="ajuda" id="craftPrecoVendaIdade"></span>
     </div>
     <div class="craft-cartoes" id="craftResultado"></div>
-    <p class="nota" id="craftNota">Preços vêm da API; o preço unitário de cada linha é editável e o que você digitar vale. Retorno usa a fórmula do jogo, bônus ÷ (1 + bônus): estação 18%, cidade com bônus de refino +40%, cidade com bônus de craft +15%, foco +59%. Artefato não retorna. Confira no painel da estação, no jogo.</p>
+    <p class="nota" id="craftNota">Preços vêm da API; o preço unitário de cada linha é editável e o que você digitar vale. Retorno é o que o painel da estação mostra no jogo, por etapa; a página só aplica a porcentagem que você digitou. Artefato não retorna.</p>
   </section>
   </div>
 
@@ -743,7 +736,7 @@
       <h2>Aba Craft: onde comprar cada material e quanto rende</h2>
       <p>Digite o nome de um item, recurso ou artefato e escolha na lista. Aparece o item com os encantamentos disponíveis (T4, .1, .2, .3, .4) pra trocar num clique, a qualidade (equipamento), a quantidade a fazer e se você usa foco.</p>
       <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada linha mostra compra, retorno esperado e custo líquido; embaixo, os totais.</p>
-      <p><b>Retorno.</b> A fórmula do jogo é retorno = bônus ÷ (1 + bônus). Estação: 18%. Cidade com bônus de refino do recurso: +40% (Fort Sterling tábuas, Thetford barras de metal, Martlock couro, Lymhurst tecido, Bridgewatch blocos de pedra; a página aplica sozinha pela cidade de refino). Cidade com bônus de craft do item: +15% (marque "Sim" se o painel da estação mostrar). Foco: +59%. Isso dá 15,2% sem nada, 36,7% refino com bônus, 24,8% craft com bônus, 43,5% com foco, 53,9% foco + bônus de refino, 47,9% foco + bônus de craft. Artefato nunca retorna. Taxa da estação é a que o dono cobra, por unidade; você digita.</p>
+      <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,2%. Artefato nunca retorna. Taxa da estação é a que o dono cobra, por unidade; você digita.</p>
       <p><b>Vender.</b> O item aparece com o preço em cada cidade: quanto a maior ordem de compra paga (venda na hora), a menor ordem de venda, a média de 7 dias e as vendas por dia. Quem paga mais fica verde e já vem escolhido; clique em outra cidade pra vender lá. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
 
@@ -1540,9 +1533,6 @@
   // ==== Aba Craft: onde comprar cada material + calculadora bruto → refino → craft → venda ====
   // Receitas vêm de receitas.js (gerado do dump oficial), carregado só quando a aba abre. Preços vêm da API; o preço
   // unitário de cada linha é editável. Nenhuma quantidade é inferida; retorno é a fórmula do jogo.
-  const BONUS = { estacao: 0.18, refinoCidade: 0.40, craftCidade: 0.15, foco: 0.59 };
-  const rrrDe = (bonus) => bonus / (1 + bonus);
-  const BONUS_REFINO = { 'Fort Sterling': ['PLANKS', 'tábuas'], 'Thetford': ['METALBAR', 'barras de metal'], 'Martlock': ['LEATHER', 'couro'], 'Lymhurst': ['CLOTH', 'tecido'], 'Bridgewatch': ['STONEBLOCK', 'blocos de pedra'] };
   const TIPO_TXT = { bruto: 'recurso bruto', refinado: 'recurso refinado', artefato: 'artefato', outro: 'material' };
   const craft = { pronto: false, familias: [], familia: null, ench: 0, precos: null, hist: null, cidadeDe: new Map(), manual: new Map(), modo: new Map(), cidVenda: null, manualVenda: null };
   const c = (id) => $('craft' + id);
@@ -1610,8 +1600,6 @@
     for (const [id, [nome, tier, ench, tipo]] of Object.entries(R.m)) add(id, nome, tier, ench, TIPO_TXT[tipo] || tipo);
     craft.familias = [...fam.values()].map((f) => { const e0 = Math.min(...Object.keys(f.variantes).map(Number)); f.nome = f.nomes[e0]; f.busca = semAcento(`${f.nome} t${f.tier} ${f.tipo}`); return f; });
     const cidades = Object.keys(CIDADES);
-    const padrao = el.cidade.value === TODAS ? 'Fort Sterling' : el.cidade.value;
-    for (const id of ['CidRefino', 'CidCraft']) { c(id).innerHTML = cidades.map((n) => `<option value="${n}">${n}</option>`).join(''); c(id).value = padrao; }
     c('TudoEm').innerHTML = '<option value="" selected>mais barato em cada</option>' + cidades.map((n) => `<option value="${n}">${n}</option>`).join('');
     craft.qual = criarMulti(c('Qual'), [1, 2, 3, 4, 5].map((q) => ({ valor: q, rotulo: QUALIDADE[q] })), [1, 2, 3, 4, 5]);
     c('Premium').value = el.premium.value;
@@ -1649,8 +1637,7 @@
     });
     c('Enchs').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ench]'); if (!b || !craft.familia) return; craft.ench = Number(b.dataset.ench); craft.manual.clear(); craft.manualVenda = null; craft.modo.clear(); mostrarItem(); buscarCraft(); });
     c('Qual').addEventListener('change', () => { if (craft.precos) { craft.manualVenda = null; renderVenda(); calcular(); } });
-    for (const id of ['Qtd', 'TaxaRefino', 'TaxaCraft']) c(id).addEventListener('input', calcular);
-    for (const id of ['Foco', 'CidRefino', 'CidCraft', 'BonusCraft']) c(id).addEventListener('change', calcular);
+    for (const id of ['Qtd', 'RetCraft', 'TaxaCraft']) c(id).addEventListener('input', calcular);
     c('TudoEm').addEventListener('change', () => {
       const cid = c('TudoEm').value;
       for (const linha of c('Materiais').querySelectorAll('.craft-linha')) { if (cid) craft.cidadeDe.set(linha.dataset.id, cid); else craft.cidadeDe.delete(linha.dataset.id); craft.manual.delete(linha.dataset.id); preencherLinha(linha); }
@@ -1662,7 +1649,11 @@
       if (cel && !cel.classList.contains('vazio')) { const linha = cel.closest('.craft-linha'); craft.cidadeDe.set(linha.dataset.id, cel.dataset.cid); craft.manual.delete(linha.dataset.id); c('TudoEm').value = ''; preencherLinha(linha); calcular(); }
       if (modo) { craft.modo.set(modo.closest('.craft-mat').dataset.mat, modo.dataset.modo); calcular(); }
     });
-    c('Materiais').addEventListener('input', (ev) => { const inp = ev.target.closest('[data-manual]'); if (!inp) return; const v = num(inp); if (v === null) craft.manual.delete(inp.dataset.manual); else craft.manual.set(inp.dataset.manual, v); calcular(); });
+    c('Materiais').addEventListener('input', (ev) => {
+      const inp = ev.target.closest('[data-manual]');
+      if (inp) { const v = num(inp); if (v === null) craft.manual.delete(inp.dataset.manual); else craft.manual.set(inp.dataset.manual, v); }
+      if (inp || ev.target.matches('[data-ret-refino], [data-taxa-refino]')) calcular();
+    });
     c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio')) return; craft.cidVenda = cel.dataset.cid; craft.manualVenda = null; renderVenda(); calcular(); });
     c('PrecoVenda').addEventListener('input', () => { craft.manualVenda = num(c('PrecoVenda')); calcular(); });
     for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.manualVenda = null; renderVenda(); calcular(); });
@@ -1759,7 +1750,7 @@
     c('Materiais').innerHTML = receita.map(([mid, q]) => {
       const m = infoItem(mid), sub = R.r[mid];
       const modo = sub ? `<nav class="abas craft-modo"><button type="button" class="aba" data-modo="comprar">Comprar pronto</button><button type="button" class="aba" data-modo="refinar">Refinar do bruto</button></nav>` : '';
-      const subHtml = sub ? `<div class="craft-sub">${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${sq} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
+      const subHtml = sub ? `<div class="craft-sub"><div class="craft-preco"><label>Retorno no refino <input type="number" class="qtd" data-ret-refino min="0" max="99" step="0.1" value="15.2" title="Copie do painel da estação de refino no jogo"> %</label><label>Taxa do refino <input type="number" class="qtd" data-taxa-refino min="0" step="1" value="0" title="Prata por unidade refinada"></label></div>${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${sq} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
       return `<div class="craft-mat" data-mat="${mid}" data-tipo="${m.tipo}">
         <div class="craft-mat-cab">
           <img class="craft-icone" src="${iconeUrl(mid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'">
@@ -1780,11 +1771,9 @@
     if (!id || !craft.precos) return;
     const receita = R.r[id];
     const n = Math.max(1, Math.round(num(c('Qtd')) || 1));
-    const foco = c('Foco').value === 'sim';
-    const rC = rrrDe(BONUS.estacao + (c('BonusCraft').value === 'sim' ? BONUS.craftCidade : 0) + (foco ? BONUS.foco : 0));
-    const cidR = c('CidRefino').value, bR = BONUS_REFINO[cidR];
-    const rRde = (mid) => rrrDe(BONUS.estacao + (bR && mid.includes('_' + bR[0]) ? BONUS.refinoCidade : 0) + (foco ? BONUS.foco : 0));
-    const feeR = num(c('TaxaRefino')) || 0, feeC = num(c('TaxaCraft')) || 0;
+    const pctDe = (inp) => Math.min(99, num(inp) ?? 0) / 100;
+    const rC = pctDe(c('RetCraft'));
+    const feeC = num(c('TaxaCraft')) || 0;
     let compra = 0, retorno = 0, taxas = feeC * n, liquido = feeC * n, falta = false;
     const refinados = [];
     if (receita) {
@@ -1794,9 +1783,11 @@
         bloco.querySelector('.craft-mat-cab .total').textContent = fmt.format(qt);
         const pm = precoLinha(mid);
         const sub = R.r[mid];
-        let custoRef = null, compraSub = 0;
+        let custoRef = null, compraSub = 0, feeR = 0;
         if (sub) {
           refinados.push(mid);
+          const rR = pctDe(bloco.querySelector('[data-ret-refino]'));
+          feeR = num(bloco.querySelector('[data-taxa-refino]')) || 0;
           let ok = true, soma = 0;
           for (const [sid, sq] of sub) {
             const ps = precoLinha(sid);
@@ -1805,8 +1796,8 @@
             linha.querySelector('.conta').textContent = ps === null ? 'falta preço' : `× ${fmt.format(sq * qt)} = ${fmt.format(Math.round(ps * sq * qt))}`;
             if (ps === null) ok = false; else soma += ps * sq;
           }
-          if (ok) { custoRef = soma * (1 - rRde(mid)) + feeR; compraSub = soma * qt; }
-          bloco.querySelector('.refino-txt').textContent = custoRef === null ? 'Refinar: falta preço de algum material.' : `Refinar em ${cidR}: retorno ${pctTxt(rRde(mid))}${feeR ? `, taxa ${fmt.format(feeR)}/un` : ''} → custo esperado ${fmt.format(Math.round(custoRef))} por unidade refinada (comprar pronto: ${pm === null ? 'sem preço' : fmt.format(pm)}).`;
+          if (ok) { custoRef = soma * (1 - rR) + feeR; compraSub = soma * qt; }
+          bloco.querySelector('.refino-txt').textContent = custoRef === null ? 'Refinar: falta preço de algum material.' : `Refinar com retorno de ${pctTxt(rR)}${feeR ? ` e taxa de ${fmt.format(feeR)} por unidade` : ''}: custo esperado ${fmt.format(Math.round(custoRef))} por unidade refinada (comprar pronto: ${pm === null ? 'sem preço' : fmt.format(pm)}).`;
         }
         let modo = sub ? craft.modo.get(mid) : 'comprar';
         if (!modo) modo = custoRef !== null && (pm === null || custoRef < pm) ? 'refinar' : 'comprar';
@@ -1828,11 +1819,10 @@
         nums[1].textContent = lRetorno > 0.5 ? '−' + fmt.format(Math.round(lRetorno)) : '0';
         nums[2].textContent = fmt.format(Math.round(lLiquido));
       }
-      c('RetornoTxt').textContent = `Retorno esperado no craft em ${c('CidCraft').value}: ${pctTxt(rC)}${foco ? ' (com foco)' : ''}${c('BonusCraft').value === 'sim' ? ' com bônus da cidade' : ''}.` + (refinados.length ? ` Refino em ${cidR}: ${refinados.map((m) => `${infoItem(m).nome} ${pctTxt(rRde(m))}${bR && m.includes('_' + bR[0]) ? ' (bônus da cidade)' : ''}`).join(', ')}.` : '') + ` Retorno vale pra material que volta; artefato não volta.`;
       const cartao = (rotulo, valor, classe, sub, destaque) => `<div class="cartao${destaque ? ' destaque' : ''}"><span>${rotulo}</span><b class="${classe}">${valor}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
       c('Totais').innerHTML = falta ? cartao('Falta preço', 'preencha', 'c-custo', 'digite o preço unitário nas linhas marcadas') : [
         cartao('Compra no mercado', fmt.format(Math.round(compra)), 'c-custo', 'tudo que você paga pelos materiais'),
-        cartao('Retorno esperado', '−' + fmt.format(Math.round(retorno)), 'c-lucro', 'material que volta, pela taxa de retorno'),
+        cartao('Retorno esperado', '−' + fmt.format(Math.round(retorno)), 'c-lucro', `material que volta: craft ${pctTxt(rC)}${refinados.length ? ', refino pelo campo de cada material' : ''}`),
         cartao('Taxas de estação', fmt.format(Math.round(taxas)), 'c-liq', `refino ${fmt.format(Math.round(taxas - feeC * n))} + craft ${fmt.format(feeC * n)}`),
         cartao(`Custo líquido (${n} un.)`, fmt.format(Math.round(liquido)), '', `${fmt.format(Math.round(liquido / n))} por item`, true),
       ].join('');
