@@ -599,10 +599,8 @@
         <div class="sugestoes mat-float" id="craftSugestoes" hidden></div>
       </div>
       <div class="campo">
-        <label for="craftQual">Qualidade (equipamento)</label>
-        <select id="craftQual">
-          <option value="1" selected>Normal</option><option value="2">Bom</option><option value="3">Excepcional</option><option value="4">Excelente</option><option value="5">Obra-prima</option>
-        </select>
+        <span class="grupo-label">Qualidade (equipamento)</span>
+        <div class="multi" id="craftQual"></div>
       </div>
       <div class="campo">
         <label for="craftQtd">Quantidade a fazer</label>
@@ -1552,7 +1550,7 @@
   const semAcento = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const rotuloTier = (tier, ench) => `T${tier}${ench ? '.' + ench : ''}`;
   const num = (inp) => { const v = Number(inp.value); return inp.value !== '' && Number.isFinite(v) && v >= 0 ? v : null; };
-  const pctTxt = (x) => (Math.floor(x * 1000) / 10).toFixed(1).replace('.', ',') + '%'; // truncado como o painel do jogo (15,2%)
+  const pctTxt = (x) => ((Math.floor(x * 1000) / 10).toFixed(1).replace('.', ',') + '%').replace(',0%', '%'); // truncado como o painel do jogo (15,2%)
   const iconeUrl = (id) => `https://render.albiononline.com/v1/item/${id}.png?size=64`;
   const familiaDe = (id) => id.replace(/@\d$/, '').replace(/_LEVEL\d$/, '');
   const itemAtual = () => (craft.familia ? craft.familia.variantes[craft.ench] : null);
@@ -1575,9 +1573,25 @@
     if (m) return { id, nome: m[0], tier: m[1], ench: m[2], tipo: m[3] };
     return { id, nome: id, tier: 0, ench: 0, tipo: 'outro' };
   }
-  // Qualidade só existe pra equipamento; material é sempre 1.
-  const qualDe = (id) => (catalogo.has(id) ? Number(c('Qual').value) : 1);
-  const precoEm = (id, cidade, lado) => craft.precos?.get(id)?.[cidade]?.[qualDe(id)]?.[lado] || null;
+  // Qualidade só existe pra equipamento (as marcadas no filtro); material é sempre 1.
+  const qualsDe = (id) => (catalogo.has(id) ? craft.qual.get().map(Number) : [1]);
+  // Melhor preço entre as qualidades marcadas: maior ordem de compra, menor ordem de venda. Diz qual qualidade é.
+  const precoEm = (id, cidade, lado) => {
+    const porQ = craft.precos?.get(id)?.[cidade];
+    if (!porQ) return null;
+    let melhor = null;
+    for (const q of qualsDe(id)) { const x = porQ[q]?.[lado]; if (x && (!melhor || (lado === 'compra' ? x.p > melhor.p : x.p < melhor.p))) melhor = { ...x, q }; }
+    return melhor;
+  };
+  // Histórico de 7 dias da cidade somando as qualidades marcadas: média ponderada pela quantidade, vendas/dia somadas.
+  const histEm = (id, cidade) => {
+    const porQ = craft.hist?.[cidade];
+    if (!porQ) return null;
+    let qtd = 0, soma = 0;
+    for (const q of qualsDe(id)) { const x = porQ[q]; if (x) { qtd += x.qtd; soma += x.media * x.qtd; } }
+    return qtd ? { media: Math.round(soma / qtd), porDia: qtd / 7 } : null;
+  };
+  const qualTxt = (id, x) => (x && catalogo.has(id) ? ' · ' + QUALIDADE[x.q] : '');
   const idadeHtml = (d) => `<span class="idade${Date.now() - d > 3600000 ? ' velho' : ''}">há ${idadeTxt(d)}</span>`;
 
   async function iniciarCraft() {
@@ -1599,6 +1613,7 @@
     const padrao = el.cidade.value === TODAS ? 'Fort Sterling' : el.cidade.value;
     for (const id of ['CidRefino', 'CidCraft']) { c(id).innerHTML = cidades.map((n) => `<option value="${n}">${n}</option>`).join(''); c(id).value = padrao; }
     c('TudoEm').innerHTML = '<option value="" selected>mais barato em cada</option>' + cidades.map((n) => `<option value="${n}">${n}</option>`).join('');
+    craft.qual = criarMulti(c('Qual'), [1, 2, 3, 4, 5].map((q) => ({ valor: q, rotulo: QUALIDADE[q] })), [1, 2, 3, 4, 5]);
     c('Premium').value = el.premium.value;
 
     const busca = c('Busca'), lista = c('Sugestoes');
@@ -1704,7 +1719,8 @@
       for (const hh of hist) {
         const r = resumirHistorico(hh.data);
         if (!r) continue;
-        (craft.hist[hh.location] ||= {})[hh.quality] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 };
+        const qtd = hh.data.reduce((a, p) => a + (p.item_count || 0), 0);
+        (craft.hist[hh.location] ||= {})[hh.quality] = { media: r.media, qtd, porDia: qtd / 7 };
       }
       if (R_temReceita(id) && !Object.keys(CIDADES).some((cid) => precoEm(id, cid, 'compra')) && Object.keys(CIDADES).some((cid) => precoEm(id, cid, 'venda'))) c('ModoVenda').value = 'ordem';
       renderMateriais(); renderVenda(); calcular();
@@ -1837,23 +1853,23 @@
   }
 
   function renderVenda() {
-    const id = itemAtual(), q = qualDe(id), R = window.ALBION_RECEITAS;
+    const id = itemAtual(), R = window.ALBION_RECEITAS;
     const temReceita = !!R.r[id];
     const lado = c('ModoVenda').value === 'ordem' ? 'venda' : 'compra';
     c('VendaTitulo').textContent = temReceita ? 'Vender' : 'Preços por cidade';
     c('VendaCtl').hidden = !temReceita; c('PrecoLinha').hidden = !temReceita; c('Nota').hidden = !temReceita;
-    const linhas = Object.keys(CIDADES).map((cid) => ({ cid, compra: precoEm(id, cid, 'compra'), venda: precoEm(id, cid, 'venda'), h: craft.hist?.[cid]?.[q] || null }));
+    const linhas = Object.keys(CIDADES).map((cid) => ({ cid, compra: precoEm(id, cid, 'compra'), venda: precoEm(id, cid, 'venda'), h: histEm(id, cid) }));
     const melhor = linhas.filter((x) => x[lado]).sort((a, b) => b[lado].p - a[lado].p)[0] || null;
     const maisBarato = linhas.filter((x) => x.venda).sort((a, b) => a.venda.p - b.venda.p)[0] || null;
     let sel = craft.cidVenda; if (!sel && melhor) sel = melhor.cid;
     c('VendaCidades').innerHTML = linhas.map((x) => `<button type="button" class="craft-cel${x[lado] ? '' : ' vazio'}${temReceita && melhor && x.cid === melhor.cid ? ' melhor' : ''}${temReceita && x.cid === sel ? ' sel' : ''}" data-cid="${x.cid}"><span class="cid">${x.cid}</span>
-      <b>${x[lado] ? fmt.format(x[lado].p) : '—'}</b><small>${lado === 'compra' ? 'ordem de compra' : 'ordem de venda'}${x[lado] ? ' · ' + idadeHtml(x[lado].d) : ''}</small>
-      <small>${lado === 'compra' ? 'venda' : 'ordem de compra'}: ${x[lado === 'compra' ? 'venda' : 'compra'] ? fmt.format(x[lado === 'compra' ? 'venda' : 'compra'].p) : '—'}</small>
+      <b>${x[lado] ? fmt.format(x[lado].p) : '—'}</b><small>${lado === 'compra' ? 'ordem de compra' : 'ordem de venda'}${qualTxt(id, x[lado])}${x[lado] ? ' · ' + idadeHtml(x[lado].d) : ''}</small>
+      <small>${lado === 'compra' ? 'venda' : 'ordem de compra'}: ${x[lado === 'compra' ? 'venda' : 'compra'] ? fmt.format(x[lado === 'compra' ? 'venda' : 'compra'].p) + qualTxt(id, x[lado === 'compra' ? 'venda' : 'compra']) : '—'}</small>
       <small>${x.h ? `média 7d ${fmt.format(x.h.media)} · ${porDiaTxt(x.h.porDia)}/dia` : 'sem vendas em 7 dias'}</small></button>`).join('');
     const resumo = [];
-    if (maisBarato) resumo.push(`Mais barato pra comprar pronto: ${maisBarato.cid}, ${fmt.format(maisBarato.venda.p)} (há ${idadeTxt(maisBarato.venda.d)}).`);
+    if (maisBarato) resumo.push(`Mais barato pra comprar pronto: ${maisBarato.cid}, ${fmt.format(maisBarato.venda.p)}${qualTxt(id, maisBarato.venda)} (há ${idadeTxt(maisBarato.venda.d)}).`);
     const pagaMais = linhas.filter((x) => x.compra).sort((a, b) => b.compra.p - a.compra.p)[0] || null;
-    if (pagaMais) resumo.push(`Quem paga mais na hora: ${pagaMais.cid}, ${fmt.format(pagaMais.compra.p)} (há ${idadeTxt(pagaMais.compra.d)}).`);
+    if (pagaMais) resumo.push(`Quem paga mais na hora: ${pagaMais.cid}, ${fmt.format(pagaMais.compra.p)}${qualTxt(id, pagaMais.compra)} (há ${idadeTxt(pagaMais.compra.d)}).`);
     const mediaBaixa = linhas.filter((x) => x.h).sort((a, b) => a.h.media - b.h.media)[0] || null;
     if (mediaBaixa) resumo.push(`Mais barato na média de 7 dias: ${mediaBaixa.cid}, ${fmt.format(mediaBaixa.h.media)}, ${porDiaTxt(mediaBaixa.h.porDia)} vendidas por dia.`);
     if (!resumo.length) resumo.push('Nenhuma cidade tem preço registrado nas últimas 24 h nem vendas em 7 dias.');
@@ -1864,7 +1880,7 @@
       c('CidVendaTxt').textContent = sel || 'nenhuma cidade';
       c('PrecoVenda').value = craft.manualVenda ?? (p ? p.p : '');
       c('PrecoVenda').placeholder = p ? '' : 'sem preço: digite';
-      c('PrecoVendaIdade').textContent = p ? `${lado === 'venda' ? 'menor ordem de venda' : 'maior ordem de compra'} · há ${idadeTxt(p.d)}` : 'sem preço na API: digite o que viu no jogo';
+      c('PrecoVendaIdade').textContent = p ? `${lado === 'venda' ? 'menor ordem de venda' : 'maior ordem de compra'}${qualTxt(id, p)} · há ${idadeTxt(p.d)}` : 'sem preço na API: digite o que viu no jogo';
     }
     c('Venda').hidden = false;
   }
