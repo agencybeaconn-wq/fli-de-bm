@@ -746,7 +746,7 @@
       <p>Digite o nome de um item, recurso ou artefato e escolha na lista. Aparece o item com os encantamentos disponíveis (T4, .1, .2, .3, .4) pra trocar num clique, a qualidade (equipamento), a quantidade a fazer e se você usa foco.</p>
       <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada material diz quantas unidades comprar já descontando o retorno reaproveitado entre um craft e outro (a devolução de um craft entra no seguinte; só a do último sobra na bag), a compra, a sobra e o custo líquido; embaixo, os totais.</p>
       <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,2%. Artefato nunca retorna. Taxa da estação é a que o dono cobra, por unidade; você digita.</p>
-      <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
+      <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. O Black Market de Caerleon entra como linha (ele só compra, na hora, e só equipamento). Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
 
     <section class="mat-card">
@@ -1703,8 +1703,8 @@
     craftStatus(`Buscando ${ids.length} preços em ${Object.keys(CIDADES).length} cidades…`);
     try {
       const [precos, hist] = await Promise.all([
-        buscar(`${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${TODAS_CIDADES_API}`),
-        buscar(`${base}/api/v2/stats/history/${id}.json?locations=${TODAS_CIDADES_API}&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`),
+        buscar(`${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${TODAS_CIDADES_API},BlackMarket`),
+        buscar(`${base}/api/v2/stats/history/${id}.json?locations=${TODAS_CIDADES_API},BlackMarket&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`),
       ]);
       if (itemAtual() !== id) return; // trocou de item no meio da busca
       craft.precos = new Map(); // id -> cidade -> qualidade -> { venda: {p,d}|null, compra: {p,d}|null }
@@ -1857,7 +1857,7 @@
     const temReceita = !!R.r[id], equip = catalogo.has(id);
     const lado = c('ModoVenda').value === 'ordem' ? 'venda' : 'compra';
     const outroLado = lado === 'compra' ? 'venda' : 'compra';
-    const cidades = Object.keys(CIDADES);
+    const cidades = equip ? [...Object.keys(CIDADES), 'Black Market'] : Object.keys(CIDADES); // BM só compra equipamento, na hora
     c('VendaTitulo').textContent = temReceita ? 'Vender' : 'Preços por cidade';
     c('VendaCtl').hidden = !temReceita; c('PrecoLinha').hidden = !temReceita; c('Nota').hidden = !temReceita;
     const celHtml = (x, extra, sel, cls) => `<button type="button" class="craft-cel${x ? '' : ' vazio'}${sel ? ' sel' : ''}${cls || ''}" ${extra}>${cls ? `<span class="cid">${lado === 'compra' ? 'paga mais' : 'menor'}</span>` : ''}<b>${x ? fmt.format(x.p) : '—'}</b>${x ? idadeHtml(x.d) : '<span class="idade">sem preço</span>'}</button>`;
@@ -1870,7 +1870,7 @@
       for (const cid of cidades) for (const q of quals) { const x = cel(cid, q).p; if (x && (!melhor || (lado === 'compra' ? x.p > melhor.p : x.p < melhor.p))) melhor = { cid, q, p: x.p }; }
       selCid = craft.cidVenda; selQ = craft.qualVenda;
       if (!selCid || !quals.includes(selQ) || !cel(selCid, selQ).p) { selCid = melhor ? melhor.cid : null; selQ = melhor ? melhor.q : null; }
-      tabela = `<table class="craft-tabela venda-matriz"><thead><tr><th>Cidade</th>${quals.map((q) => `<th>${equip ? QUALIDADE[q] : (lado === 'compra' ? 'Maior ordem de compra' : 'Menor ordem de venda')}</th>`).join('')}</tr></thead><tbody>${cidades.map((cid) => `<tr><td>${cid}</td>${quals.map((q) => {
+      tabela = `<table class="craft-tabela venda-matriz"><thead><tr><th>Cidade</th>${quals.map((q) => `<th>${equip ? QUALIDADE[q] : (lado === 'compra' ? 'Maior ordem de compra' : 'Menor ordem de venda')}</th>`).join('')}</tr></thead><tbody>${cidades.map((cid) => `<tr><td>${cid === 'Black Market' ? 'Black Market<span class="subtxt">Caerleon · só compra na hora</span>' : cid}</td>${quals.map((q) => {
         const x = cel(cid, q);
         const eMelhor = melhor && melhor.cid === cid && melhor.q === q;
         return `<td><button type="button" class="craft-cel${x.p ? '' : ' vazio'}${eMelhor ? ' melhor' : ''}${cid === selCid && q === selQ ? ' sel' : ''}" data-cid="${cid}" data-q="${q}">${eMelhor ? `<span class="cid">${lado === 'compra' ? 'paga mais' : 'menor preço'}</span>` : ''}<b>${x.p ? fmt.format(x.p.p) : '—'}</b>${x.p ? idadeHtml(x.p.d) : '<span class="idade">sem preço</span>'}<small>${x.outro ? `${outroLado === 'venda' ? 'venda' : 'ordem de compra'} ${fmt.format(x.outro.p)}` : ''}</small><small>${x.h ? `média 7d ${fmt.format(x.h.media)} · ${porDiaTxt(x.h.porDia)}/dia` : 'sem vendas em 7 dias'}</small></button></td>`;
