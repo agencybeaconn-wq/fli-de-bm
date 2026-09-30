@@ -658,7 +658,7 @@
       <span class="ajuda" id="craftPrecoVendaIdade"></span>
     </div>
     <div class="craft-cartoes" id="craftResultado"></div>
-    <p class="nota" id="craftNota">Preços vêm da API; o preço unitário de cada linha é editável e o que você digitar vale. Retorno é o que o painel da estação mostra no jogo, por etapa; a página só aplica a porcentagem que você digitou. Artefato não retorna.</p>
+    <p class="nota" id="craftNota">Preços vêm da API; o preço unitário de cada linha é editável e o que você digitar vale. Retorno é o que o painel da estação mostra no jogo, por etapa; a página só aplica a porcentagem que você digitou. "Comprar" é a quantidade pra craftar em sequência reaproveitando o que volta: só a devolução do último craft sobra na bag. Como o retorno é média, pode faltar uma ou duas unidades no fim. Artefato não retorna.</p>
   </section>
   </div>
 
@@ -744,7 +744,7 @@
     <section class="mat-card">
       <h2>Aba Craft: onde comprar cada material e quanto rende</h2>
       <p>Digite o nome de um item, recurso ou artefato e escolha na lista. Aparece o item com os encantamentos disponíveis (T4, .1, .2, .3, .4) pra trocar num clique, a qualidade (equipamento), a quantidade a fazer e se você usa foco.</p>
-      <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada linha mostra compra, retorno esperado e custo líquido; embaixo, os totais.</p>
+      <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada material diz quantas unidades comprar já descontando o retorno reaproveitado entre um craft e outro (a devolução de um craft entra no seguinte; só a do último sobra na bag), a compra, a sobra e o custo líquido; embaixo, os totais.</p>
       <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,2%. Artefato nunca retorna. Taxa da estação é a que o dono cobra, por unidade; você digita.</p>
       <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
@@ -1763,9 +1763,9 @@
       return `<div class="craft-mat" data-mat="${mid}" data-tipo="${m.tipo}">
         <div class="craft-mat-cab">
           <img class="craft-icone" src="${iconeUrl(mid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'">
-          <div><div class="nome">${escapar(m.nome)} <span class="tier">${rotuloTier(m.tier, m.ench)}</span></div><div class="meta">${TIPO_TXT[m.tipo] || m.tipo}${m.tipo === 'artefato' ? ' · sem retorno' : ''} · ${q} por item · <span class="total"></span> no total</div></div>
+          <div><div class="nome">${escapar(m.nome)} <span class="tier">${rotuloTier(m.tier, m.ench)}</span></div><div class="meta">${TIPO_TXT[m.tipo] || m.tipo}${m.tipo === 'artefato' ? ' · sem retorno' : ''} · ${q} por item · comprar <span class="total"></span></div></div>
           ${modo}
-          <div class="craft-num"><span>Compra<b class="c-custo n-compra">—</b></span><span>Retorno<b class="c-lucro n-retorno">—</b></span><span>Custo líquido<b class="n-liquido">—</b></span></div>
+          <div class="craft-num"><span>Compra<b class="c-custo n-compra">—</b></span><span>Sobra na bag<b class="c-lucro n-retorno">—</b></span><span>Custo líquido<b class="n-liquido">—</b></span></div>
         </div>
         ${linhaHtml(mid, `Comprar pronto · <b>${q} por item</b>`)}
         ${subHtml}
@@ -1775,6 +1775,9 @@
     c('Mat').hidden = false;
   }
 
+  // Unidades a comprar craftando em sequência: cada operação consome q e devolve q·r (média), o devolvido entra na
+  // operação seguinte, e só a devolução da última sobra na bag. Arredonda pra cima. Retorno é média: pode faltar 1 ou 2 no fim.
+  const unidadesComprar = (q, ops, r) => Math.ceil(q * ops * (1 - r) + q * r - 1e-9);
   function calcular() {
     const R = window.ALBION_RECEITAS, id = itemAtual();
     if (!id || !craft.precos) return;
@@ -1783,29 +1786,32 @@
     const pctDe = (inp) => Math.min(99, num(inp) ?? 0) / 100;
     const rC = pctDe(c('RetCraft'));
     const feeC = num(c('TaxaCraft')) || 0;
-    let compra = 0, retorno = 0, taxas = feeC * n, liquido = feeC * n, falta = false;
-    const refinados = [];
+    let compra = 0, sobra = 0, taxas = feeC * n, liquido = feeC * n, falta = false;
+    const cartao = (rotulo, valor, classe, sub, destaque) => `<div class="cartao${destaque ? ' destaque' : ''}"><span>${rotulo}</span><b class="${classe}">${valor}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
     if (receita) {
       for (const [mid, q] of receita) {
         const bloco = c('Materiais').querySelector(`.craft-mat[data-mat="${mid}"]`);
-        const qt = q * n;
-        bloco.querySelector('.craft-mat-cab .total').textContent = fmt.format(qt);
+        const r = infoItem(mid).tipo === 'artefato' ? 0 : rC;
+        const bRef = unidadesComprar(q, n, r);        // unidades do material a ter em mãos
+        const sobraRef = bRef - q * n * (1 - r);        // o que volta no último craft, mais o arredondamento
+        bloco.querySelector('.craft-mat-cab .total').textContent = `${fmt.format(bRef)} (${fmt.format(q * n)} sem retorno)`;
         const pm = precoLinha(mid);
         const sub = R.r[mid];
-        let custoRef = null, compraSub = 0, feeR = 0;
+        let custoRef = null, compraSub = 0, sobraSub = 0, feeR = 0;
         if (sub) {
-          refinados.push(mid);
           const rR = pctDe(bloco.querySelector('[data-ret-refino]'));
           feeR = num(bloco.querySelector('[data-taxa-refino]')) || 0;
           let ok = true, soma = 0;
           for (const [sid, sq] of sub) {
             const ps = precoLinha(sid);
+            const bS = unidadesComprar(sq, bRef, rR);
             const linha = bloco.querySelector(`.craft-sub .craft-linha[data-id="${sid}"]`);
-            linha.querySelector('.rotulo .total').textContent = `${fmt.format(sq * qt)} no total`;
-            linha.querySelector('.conta').textContent = ps === null ? 'falta preço' : `× ${fmt.format(sq * qt)} = ${fmt.format(Math.round(ps * sq * qt))}`;
-            if (ps === null) ok = false; else soma += ps * sq;
+            linha.querySelector('.rotulo .total').textContent = `comprar ${fmt.format(bS)} pra refinar ${fmt.format(bRef)}`;
+            linha.querySelector('.conta').textContent = ps === null ? 'falta preço' : `× ${fmt.format(bS)} = ${fmt.format(Math.round(ps * bS))}`;
+            if (ps === null) { ok = false; continue; }
+            soma += ps * sq; compraSub += ps * bS; sobraSub += (bS - sq * bRef * (1 - rR)) * ps;
           }
-          if (ok) { custoRef = soma * (1 - rR) + feeR; compraSub = soma * qt; }
+          if (ok) custoRef = soma * (1 - rR) + feeR;
           bloco.querySelector('.refino-txt').textContent = custoRef === null ? 'Refinar: falta preço de algum material.' : `Refinar com retorno de ${pctTxt(rR)}${feeR ? ` e taxa de ${fmt.format(feeR)} por unidade` : ''}: custo esperado ${fmt.format(Math.round(custoRef))} por unidade refinada (comprar pronto: ${pm === null ? 'sem preço' : fmt.format(pm)}).`;
         }
         let modo = sub ? craft.modo.get(mid) : 'comprar';
@@ -1814,39 +1820,34 @@
         const linhaDireta = bloco.querySelector(':scope > .craft-linha'), subBloco = bloco.querySelector('.craft-sub');
         linhaDireta.hidden = modo === 'refinar';
         if (subBloco) subBloco.hidden = modo !== 'refinar';
-        linhaDireta.querySelector('.conta').textContent = pm === null ? 'falta preço' : `× ${fmt.format(qt)} = ${fmt.format(Math.round(pm * qt))}`;
-        const fator = infoItem(mid).tipo === 'artefato' ? 1 : 1 - rC;
-        let lCompra, lTaxas = 0, lLiquido;
-        if (modo === 'comprar') { if (pm === null) { falta = true; } else { lCompra = qt * pm; lLiquido = lCompra * fator; } }
+        linhaDireta.querySelector('.conta').textContent = pm === null ? 'falta preço' : `× ${fmt.format(bRef)} = ${fmt.format(Math.round(pm * bRef))}${sobraRef >= 0.5 ? ` · sobra ≈ ${fmt.format(Math.round(sobraRef))} un.` : ''}`;
+        let lCompra, lTaxas = 0, lSobra = 0, lLiquido;
+        if (modo === 'comprar') { if (pm === null) falta = true; else { lCompra = bRef * pm; lSobra = sobraRef * pm; lLiquido = lCompra - lSobra; } }
         else if (custoRef === null) falta = true;
-        else { lCompra = compraSub; lTaxas = qt * feeR; lLiquido = qt * custoRef * fator; }
+        else { lCompra = compraSub; lTaxas = bRef * feeR; lSobra = sobraSub + sobraRef * custoRef; lLiquido = lCompra + lTaxas - lSobra; }
         const nums = bloco.querySelectorAll('.craft-num b');
         if (lCompra === undefined) { nums.forEach((b) => { b.textContent = 'falta preço'; }); continue; }
-        const lRetorno = lCompra + lTaxas - lLiquido;
-        compra += lCompra; taxas += lTaxas; retorno += lRetorno; liquido += lLiquido;
+        compra += lCompra; taxas += lTaxas; sobra += lSobra; liquido += lLiquido;
         nums[0].textContent = fmt.format(Math.round(lCompra));
-        nums[1].textContent = lRetorno > 0.5 ? '−' + fmt.format(Math.round(lRetorno)) : '0';
+        nums[1].textContent = lSobra > 0.5 ? '−' + fmt.format(Math.round(lSobra)) : '0';
         nums[2].textContent = fmt.format(Math.round(lLiquido));
       }
-      const cartao = (rotulo, valor, classe, sub, destaque) => `<div class="cartao${destaque ? ' destaque' : ''}"><span>${rotulo}</span><b class="${classe}">${valor}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
       c('Totais').innerHTML = falta ? cartao('Falta preço', 'preencha', 'c-custo', 'digite o preço unitário nas linhas marcadas') : [
-        cartao('Compra no mercado', fmt.format(Math.round(compra)), 'c-custo', 'tudo que você paga pelos materiais'),
-        cartao('Retorno esperado', '−' + fmt.format(Math.round(retorno)), 'c-lucro', `material que volta: craft ${pctTxt(rC)}${refinados.length ? ', refino pelo campo de cada material' : ''}`),
+        cartao('Compra no mercado', fmt.format(Math.round(compra)), 'c-custo', 'nas quantidades "comprar", já descontando o retorno reaproveitado'),
+        cartao('Sobra na bag', '−' + fmt.format(Math.round(sobra)), 'c-lucro', 'o que volta no último craft e no arredondamento; vale isso em prata'),
         cartao('Taxas de estação', fmt.format(Math.round(taxas)), 'c-liq', `refino ${fmt.format(Math.round(taxas - feeC * n))} + craft ${fmt.format(feeC * n)}`),
         cartao(`Custo líquido (${n} un.)`, fmt.format(Math.round(liquido)), '', `${fmt.format(Math.round(liquido / n))} por item`, true),
       ].join('');
     }
-    // venda e resultado
     const venda = craft.manualVenda ?? num(c('PrecoVenda'));
     if (!receita) { c('Resultado').innerHTML = ''; return; }
     const taxa = (c('Premium').value === 'premium' ? 0.04 : 0.08) + (c('ModoVenda').value === 'ordem' ? 0.025 : 0);
     const vendaLiq = venda === null ? null : venda * (1 - taxa) * n;
     const lucro = vendaLiq === null || falta ? null : vendaLiq - liquido;
-    const cartao = (rotulo, valor, classe, sub, destaque) => `<div class="cartao${destaque ? ' destaque' : ''}"><span>${rotulo}</span><b class="${classe}">${valor}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
     c('Resultado').innerHTML = [
       cartao(`Custo líquido (${n} un.)`, falta ? 'falta preço' : fmt.format(Math.round(liquido)), 'c-custo', falta ? '' : `${fmt.format(Math.round(liquido / n))} por item`),
       cartao('Venda líquida', vendaLiq === null ? '—' : fmt.format(Math.round(vendaLiq)), 'c-bm', `${venda === null ? 'digite o preço' : fmt.format(venda) + ' por unidade'} menos ${pctTxt(taxa)} de taxa`),
-      cartao('Lucro', lucro === null ? '—' : (lucro >= 0 ? '+' : '') + fmt.format(Math.round(lucro)), 'c-lucro', lucro === null ? 'falta preço' : `${lucro >= 0 ? '+' : ''}${fmt.format(Math.round(lucro / n))} por item`, true),
+      cartao('Lucro', lucro === null ? '—' : (lucro >= 0 ? '+' : '') + fmt.format(Math.round(lucro)), 'c-lucro', lucro === null ? 'falta preço de venda ou de material' : `${lucro >= 0 ? '+' : ''}${fmt.format(Math.round(lucro / n))} por item`, true),
       cartao('ROI', lucro === null || !liquido ? '—' : `${Math.round((lucro / liquido) * 100)}%`, 'c-roi', 'lucro sobre o custo líquido'),
     ].join('');
   }
