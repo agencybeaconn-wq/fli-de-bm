@@ -22,6 +22,7 @@ function escolherReceita(cr) {
   return {
     mats: lista(v.craftresource).map((r) => [idApi(r['@uniquename']), Number(r['@count']), r['@maxreturnamount'] === '0' ? 0 : 1]),
     saida: Number(v['@amountcrafted'] || 1),
+    foco: Number(v['@craftingfocus']) || 0, // custo de foco com 0 de especialização
   };
 }
 
@@ -70,7 +71,7 @@ function escolherReceita(cr) {
     const rec = escolherReceita(it.craftingrequirements);
     const sub = it['@shopsubcategory1'] || '';
     const k = /ARTEFACT/.test(base) ? 'artefato' : /_(RUNE|SOUL|RELIC|SHARD_AVALONIAN)$/.test(base) ? 'encantamento' : sub === 'refinedresources' ? 'refinado' : sub === 'resources' ? 'bruto' : 'outro';
-    receitas[idA] = { n: nomes.get(idA) || nomes.get(base) || base, t: tier, e: ench, k, rec: k === 'refinado' && rec ? rec : null, peso: Number(it['@weight']) || 0 };
+    receitas[idA] = { n: nomes.get(idA) || nomes.get(base) || base, t: tier, e: ench, k, rec: k === 'refinado' && rec ? rec : null, peso: Number(it['@weight']) || 0, valor: Number(it['@itemvalue']) || 0 };
     if (receitas[idA].rec) for (const [m] of receitas[idA].rec.mats) if (!receitas[m]) fila.push(m);
   }
 
@@ -82,15 +83,17 @@ function escolherReceita(cr) {
     const idA = idApi(base);
     if (receitas[idA]) continue;
     const rec = sub === 'refinedresources' ? escolherReceita(it.craftingrequirements) : null;
-    receitas[idA] = { n: nomes.get(idA) || nomes.get(base) || base, t: Number(it['@tier']) || 0, e: Number((/_LEVEL(\d)$/.exec(base) || [])[1] || 0), k: sub === 'refinedresources' ? 'refinado' : 'bruto', rec, peso: Number(it['@weight']) || 0 };
+    receitas[idA] = { n: nomes.get(idA) || nomes.get(base) || base, t: Number(it['@tier']) || 0, e: Number((/_LEVEL(\d)$/.exec(base) || [])[1] || 0), k: sub === 'refinedresources' ? 'refinado' : 'bruto', rec, peso: Number(it['@weight']) || 0, valor: Number(it['@itemvalue']) || 0 };
   }
 
-  // Formato: m = materiais { id: [nome, tier, ench, tipo, peso] } (tipo: bruto, refinado, artefato, encantamento, outro;
+  // Formato: m = materiais { id: [nome, tier, ench, tipo, peso, valor do item] } (tipo: bruto, refinado, artefato, encantamento, outro;
   // artefato e encantamento não voltam com a taxa de retorno); r = receitas { id: [[material, quantidade], ...] } de
   // equipamentos e recursos refinados; u = encantar { id@n: [[runa/alma/relíquia, quantidade]] } do nível n-1 pro n.
-  const saida = { m: {}, r: {}, u: {} };
+  // f = custo de foco { id: foco com 0 de especialização } de equipamentos e refinados (valor do equipamento = soma dos materiais).
+  const saida = { m: {}, r: {}, u: {}, f: {} };
   for (const [id, x] of Object.entries(receitas)) {
-    if (x.k !== 'equip') saida.m[id] = [x.n, x.t, x.e, x.k, x.peso];
+    if (x.k !== 'equip') saida.m[id] = [x.n, x.t, x.e, x.k, x.peso, x.valor];
+    if (x.rec && x.rec.foco) saida.f[id] = x.rec.foco;
     if (x.rec) saida.r[id] = x.rec.mats.map(([m, q]) => [m, q]);
     if (x.up && x.up.length) saida.u[id] = x.up;
   }
@@ -101,5 +104,6 @@ function escolherReceita(cr) {
   console.log(`receitas.js: ${Object.keys(receitas).length} entradas, ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB, por tipo ${JSON.stringify(porTipo)}, equipamentos sem receita: ${semReceita}`);
   for (const id of ['T5_PLANKS_LEVEL1@1', 'T4_RUNE', 'T4_SOUL']) console.log(id, JSON.stringify(saida.m[id]));
   for (const id of ['T4_MAIN_SWORD@1', 'T4_MAIN_SWORD@3', 'T6_ARMOR_PLATE_AVALON@2']) console.log(id, 'encantar:', JSON.stringify(saida.u[id]));
-  console.log('encantáveis:', Object.keys(saida.u).length);
+  console.log('encantáveis:', Object.keys(saida.u).length, '| com foco:', Object.keys(saida.f).length);
+  for (const id of ['T4_PLANKS', 'T4_LEATHER_LEVEL1@1', 'T8_PLANKS', 'T4_MAIN_SWORD', 'T4_MAIN_SWORD@2']) console.log(id, 'valor', (saida.m[id] || [])[5], 'foco', saida.f[id]);
 })().catch((e) => { console.error(e.message); process.exit(1); });
