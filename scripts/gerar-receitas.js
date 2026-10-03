@@ -1,11 +1,70 @@
 // Gera receitas.js (receitas de craft e refino, recursos e artefatos) a partir do dump oficial do ao-data.
 // Rodar quando o jogo ganhar itens novos:  node scripts/gerar-receitas.js
-// Fonte: items.json (dump bruto, tem craftingrequirements) + formatted/items.json (nomes em PT-BR).
+// Fonte: items.json (dump bruto, tem craftingrequirements) + formatted/items.json (nomes em PT-BR) +
+// achievements.json (Quadro do Destino: níveis de maestria de craft).
 const fs = require('fs');
 const path = require('path');
 
 const URL_RAW = 'https://raw.githubusercontent.com/ao-data/ao-bin-dumps/master/items.json';
 const URL_FMT = 'https://raw.githubusercontent.com/ao-data/ao-bin-dumps/master/formatted/items.json';
+const URL_ACH = 'https://raw.githubusercontent.com/ao-data/ao-bin-dumps/master/achievements.json';
+// Nome em PT-BR de cada nó de maestria de craft e do nó anterior a ele, como aparece no Quadro do Destino. Copiados do
+// localization.json do dump (@DESTINYBOARD_TITLE_<id>): o arquivo tem 92 MB, por isso não é baixado a cada geração.
+// Nó novo no jogo sem nome aqui aparece com o id.
+const TITULO_NO = {
+  CRAFT_ARCANESTAFFS: 'Fabricante de Cajados Arcanos',
+  CRAFT_AXES: 'Fabricante de Machados de Guerra',
+  CRAFT_BAG: 'Alfaiate de Bolsas',
+  CRAFT_BOOKS: 'Fabricante de Tomos',
+  CRAFT_BOWS: 'Fabricante de Arcos',
+  CRAFT_CAPE: 'Alfaiate de Capas',
+  CRAFT_CLOTH_ARMORS: 'Fabricante de Robe de Tecido',
+  CRAFT_CLOTH_HEADS: 'Fabricante de Capotes de Tecido',
+  CRAFT_CLOTH_SHOES: 'Fabricante de Sandálias de Tecido',
+  CRAFT_CROSSBOWS: 'Fabricante de Bestas',
+  CRAFT_CURSEDSTAFFS: 'Fabricante de Cajados Amaldiçoados',
+  CRAFT_DAGGERS: 'Fabricante de Adagas',
+  CRAFT_FIRESTAFFS: 'Fabricante Cajados de Fogo',
+  CRAFT_FROSTSTAFFS: 'Fabricante de Cajados de Gelo',
+  CRAFT_HAMMERS: 'Fabricante de Martelos',
+  CRAFT_HOLYSTAFFS: 'Fabricante de Cajados Sagrados',
+  CRAFT_KNUCKLES: 'Fabricante de Luvas de Guerra',
+  CRAFT_LEATHER_ARMORS: 'Fabricante de Casacos de Couro',
+  CRAFT_LEATHER_HEADS: 'Fabricante de Capuzes de Couro',
+  CRAFT_LEATHER_SHOES: 'Fabricante de Sapatos de Couro',
+  CRAFT_MACES: 'Fabricante de Maças',
+  CRAFT_NATURESTAFFS: 'Fabricante de Cajados da Natureza',
+  CRAFT_PLATE_ARMORS: 'Fabricante de Armadura de Placas',
+  CRAFT_PLATE_HEADS: 'Fabricante de Elmos de Placas',
+  CRAFT_PLATE_SHOES: 'Fabricante de Botas de Placas',
+  CRAFT_QUARTERSTAFFS: 'Fabricante de Bordões',
+  CRAFT_SHAPESHIFTER: 'Fabricante Metamorfo',
+  CRAFT_SHIELDS: 'Fabricante de Escudos',
+  CRAFT_SPEARS: 'Fabricante de Lanças',
+  CRAFT_SWORDS: 'Fabricante de Espadas',
+  CRAFT_TOOL_AXE: 'Fabricante de Machados',
+  CRAFT_TOOL_FISHINGROD: 'Fabricante de Pescador',
+  CRAFT_TOOL_HAMMER: 'Fabricante de Martelos de Pedra',
+  CRAFT_TOOL_KNIFE: 'Fabricante de Facas de Esfolar',
+  CRAFT_TOOL_PICK: 'Fabricante de Picaretas',
+  CRAFT_TOOL_SICKLE: 'Fabricante de Foices',
+  CRAFT_TOOL_SIEGEHAMMER: 'Fabricante de Equipamentos de Cerco',
+  CRAFT_TOOL_TRACKING: 'Fabricante de Kits de Rastreamento',
+  CRAFT_TORCHES: 'Fabricante de Tochas',
+  CRAFT_HUNTER: 'Fabricante da Cabana do Caçador Iniciante',
+  CRAFT_MAGE: 'Fabricante da Torre do Mago Iniciante',
+  CRAFT_TOOL: 'Ferramenteiro Iniciante',
+  CRAFT_WARRIOR: 'Fabricante da Forja do Guerreiro Iniciante',
+};
+const GRUPO_NO = {
+  '@ACHIEVEMENT_SUBCATEGORY_CRAFT_TOOL': 'Ferramenteiro',
+  '@ACHIEVEMENT_SUBCATEGORY_CRAFT_WARRIOR': 'Forja do Guerreiro',
+  '@ACHIEVEMENT_SUBCATEGORY_CRAFT_HUNTER': 'Cabana do Caçador',
+  '@ACHIEVEMENT_SUBCATEGORY_CRAFT_MAGE': 'Torre do Mago',
+};
+// Equipamento T3: o Black Market não compra (fica fora do catálogo), mas é o que se crafta do nível 0 ao 1 da maestria.
+const SLOT_EQUIP = { mainhand: 'Arma', offhand: 'Off-hand', head: 'Capacete', armor: 'Armadura', shoes: 'Botas', cape: 'Capa', bag: 'Bolsa' };
+const CATEGORIA_EQUIP = new Set(['weapons', 'armors', 'head', 'shoes', 'offhands', 'capes', 'bags']);
 const ITEMS_JS = path.join(__dirname, '..', 'items.js');
 const SAIDA = path.join(__dirname, '..', 'receitas.js');
 
@@ -60,7 +119,7 @@ function escolherReceita(cr) {
 
 (async () => {
   const baixar = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status} em ${url}`); return r.json(); };
-  const [raw, fmt] = await Promise.all([baixar(URL_RAW), baixar(URL_FMT)]);
+  const [raw, fmt, ach] = await Promise.all([baixar(URL_RAW), baixar(URL_FMT), baixar(URL_ACH)]);
   const nomes = new Map(fmt.map((f) => [f.UniqueName, f.LocalizedNames?.['PT-BR'] || f.LocalizedNames?.['EN-US'] || f.UniqueName]));
   const dump = new Map();
   for (const grupo of Object.values(raw.items)) if (Array.isArray(grupo)) for (const it of grupo) if (it && it['@uniquename']) dump.set(it['@uniquename'], it);
@@ -69,10 +128,12 @@ function escolherReceita(cr) {
   const janela = {}; new Function('window', fs.readFileSync(ITEMS_JS, 'utf8'))(janela);
   const equipamentos = janela.ALBION_ITEMS;
   // Itens só do Craft (o Black Market não compra): ferramenta e equipamento de coleta, comida, poção, montaria, kit de
-  // reparo e baú. Saem do dump formatado (que tem os encantamentos com nome), filtrados pela categoria do dump bruto.
+  // reparo, baú e equipamento T3. Saem do dump formatado (que tem os encantamentos com nome), filtrados pela categoria
+  // do dump bruto.
   const noCatalogo = new Set(equipamentos.map(([id]) => id));
   const slotExtra = (it, id) => {
     const cat = it['@shopcategory'], sub = it['@shopsubcategory1'];
+    if (/^T3_/.test(id) && CATEGORIA_EQUIP.has(cat)) return SLOT_EQUIP[it['@slottype']] || null;
     if (cat === 'gathering') return /_TOOL_/.test(id) ? 'Ferramenta' : 'Coleta';
     if (cat === 'consumables') return sub === 'potions' ? 'Poção' : sub === 'food' ? 'Comida' : null;
     if (cat === 'mounts') return 'Montaria';
@@ -150,7 +211,35 @@ function escolherReceita(cr) {
   // rb = Rest com bônus de craft { id base: Rest }.
   // e = itens só do Craft { id: [nome, tier, ench, tipo, tem qualidade] }. Receita e foco ficam por unidade: poção e
   // comida saem 5 ou 10 por craft.
-  const saida = { m: {}, r: {}, u: {}, f: {}, b: {}, rb: {}, e: {} };
+  // p = progresso de craft (ver abaixo).
+  const saida = { m: {}, r: {}, u: {}, f: {}, b: {}, rb: {}, e: {}, p: null };
+
+  // Progresso de craft, do achievements.json: template CRAFT_BASE (100 níveis de maestria) e os nós que o usam.
+  //   n = fama pra subir cada nível (índice 0 = do nível 0 ao 1), antes do multiplicador do nó
+  //   t = { tier: nível que libera o craft daquele tier }
+  //   mi = tier mínimo do item que conta fama em cada nível
+  //   nos = [id, nome, grupo, multiplicador da fama exigida, padrões de item (? = 1 caractere, * = qualquer resto),
+  //          [nome do nó anterior, fama que ele pede com itens T2] ou null]
+  //   af = { item sem o tier: fator de fama do item de artefato } (@destinyandjournalcraftfamefactor do items.json)
+  const modelo = lista(ach.achievements.template).find((t) => t['@name'] === 'CRAFT_BASE');
+  if (!modelo || !/^Fame;LP;MissionTargetMinTier;MissionTargetMaxTier;MissionItemMinTier;MissionItemMaxTier;UnlockTier/.test(modelo.baselevels['@structure'])) throw new Error('achievements.json: template CRAFT_BASE mudou de formato');
+  const niveis = modelo.baselevels['#text'].trim().split(/\s*\n\s*/).map((l) => l.split(';'));
+  const nosFixos = new Map(lista(ach.achievements.achievement).map((x) => [x['@id'], x]));
+  const liberaTier = {};
+  niveis.forEach((l, i) => { if (l[6]) liberaTier[Number(l[6])] = i + 1; });
+  const fatorArtefato = {};
+  for (const [id, it] of dump) { const f = Number(it['@destinyandjournalcraftfamefactor']); if (f && f !== 1 && /^T\d_/.test(id)) fatorArtefato[id.replace(/^T\d_/, '')] = f; }
+  saida.p = {
+    n: niveis.map((l) => Number(l[0])),
+    t: liberaTier,
+    mi: niveis.map((l) => Number(l[4])),
+    nos: lista(ach.achievements.templateachievement).filter((x) => x['@usetemplate'] === 'CRAFT_BASE').map((no) => {
+      const pai = lista(no.parentachievements?.achievement).map((x) => nosFixos.get(x['@id'])).find(Boolean);
+      const missao = pai?.masterylevels?.masterylevel?.missions?.mission;
+      return [no['@id'], TITULO_NO[no['@id']] || no['@id'], GRUPO_NO[no['@subcategorylocatag']] || 'Outros', Number(no['@famemultiplier']) || 1, lista(no.itemlist?.itempattern).map((x) => x['@pattern']), pai ? [TITULO_NO[pai['@id']] || pai['@id'], Number(missao?.['@value']) || 0] : null];
+    }),
+    af: fatorArtefato,
+  };
   for (const [id, x] of Object.entries(receitas)) {
     if (x.k !== 'equip') saida.m[id] = [x.n, x.t, x.e, x.k, x.peso, x.valor];
     const porCraft = (x.rec && x.rec.saida) || 1;
@@ -177,4 +266,7 @@ function escolherReceita(cr) {
   for (const c of Object.values(saida.b)) porCidade[c] = (porCidade[c] || 0) + 1;
   console.log('bônus de craft por cidade:', JSON.stringify(porCidade), '| exemplos:', ['T4_MAIN_SWORD', 'T4_2H_HOLYSTAFF', 'T4_OFF_SHIELD', 'T4_CAPE', 'T4_BAG', 'T4_ARMOR_LEATHER_FEY', 'T4_2H_KNUCKLES_SET1'].map((x) => x + '=' + saida.b[x]).join(' '));
   for (const id of ['T4_PLANKS', 'T4_LEATHER_LEVEL1@1', 'T8_PLANKS', 'T4_MAIN_SWORD', 'T4_MAIN_SWORD@2']) console.log(id, 'valor', (saida.m[id] || [])[5], 'foco', saida.f[id]);
+  const acumulado = (ate) => saida.p.n.slice(0, ate).reduce((a, x) => a + x, 0);
+  console.log('progresso de craft:', saida.p.nos.length, 'nós |', saida.p.n.length, 'níveis | libera', JSON.stringify(saida.p.t), '| fama acumulada', Object.values(saida.p.t).map((nv) => `nv${nv}=${acumulado(nv)}`).join(' '), '| fatores de artefato:', Object.keys(saida.p.af).length);
+  console.log('nó de exemplo:', JSON.stringify(saida.p.nos.find((x) => x[0] === 'CRAFT_TOOL_FISHINGROD')), '| T3:', ['T3_MAIN_SWORD', 'T3_ARMOR_PLATE_SET1', 'T3_BAG'].map((x) => `${x}=${JSON.stringify(saida.e[x])} ${JSON.stringify(saida.r[x])}`).join(' '));
 })().catch((e) => { console.error(e.message); process.exit(1); });

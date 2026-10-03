@@ -308,6 +308,35 @@
   .craft-lista-linha .craft-icone { width: 26px; height: 26px; }
   .craft-lista-linha .num { margin-left: auto; font-family: var(--mono); white-space: nowrap; }
   .craft-lista-total { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--vib-2); }
+  .craft-lista-itens { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .craft-lista-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-radius: var(--r-control); background: var(--fill); box-shadow: inset 0 0 0 1px var(--ring); cursor: pointer; transition: background .12s var(--ease-out), box-shadow .12s var(--ease-out); }
+  .craft-lista-item:hover { background: var(--fill-2); }
+  .craft-lista-item.ativa { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 3px var(--accent-soft); cursor: default; }
+  .craft-lista-item .craft-icone { width: 36px; height: 36px; }
+  .craft-lista-item .nome { font-size: 13.5px; font-weight: 600; }
+  .craft-lista-item .meta { font-size: 12px; color: var(--vib-2); }
+  .craft-lista-item .meta b { font-family: var(--mono); font-weight: 500; color: var(--vib-1); }
+  .craft-lista-item label { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--vib-2); cursor: text; }
+  .craft-lista-item input.qtd { width: 72px; }
+  .craft-lista-item button.link { padding: 2px 6px; font-size: 18px; line-height: 1; }
+  .craft-lista-item button.link:hover { color: var(--c-custo); }
+  .craft-lista-add { padding: 8px 16px; border: 0; border-radius: var(--r-control); background: transparent; box-shadow: inset 0 0 0 1px var(--ring); color: var(--accent-2); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background .12s var(--ease-out), transform .1s var(--ease-out); }
+  .craft-lista-add:hover { background: var(--fill-2); }
+  .craft-lista-add:active { transform: scale(.98); }
+  .craft-total .craft-lista-titulo { margin-top: 16px; }
+  .craft-total .craft-cartoes { margin-top: 0; }
+  .craft-total details { margin-top: 12px; }
+  .craft-total details .craft-lista { margin-top: 10px; }
+  .craft-mais-tier { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-basis: 100%; font-size: 12.5px; color: var(--vib-2); }
+  .craft-mais-tier .craft-chips { margin-left: 0; }
+  .nivel-opcoes { display: grid; gap: 24px; margin-top: 18px; }
+  .nivel-opcoes > div { min-width: 0; } /* a tabela rola dentro do bloco em vez de alargar a página */
+  .nivel-opcoes h4 { margin: 0 0 4px; font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; }
+  .nivel-opcoes .craft-retorno { margin-bottom: 10px; }
+  .nivel-tabela tbody td { vertical-align: top; }
+  .nivel-tabela tbody td:first-child { white-space: normal; }
+  .nivel-tabela td .meta { font-size: 12px; color: var(--vib-2); }
+  .nivel-tabela .item { margin-bottom: 6px; }
   .reco-tabela thead th:first-child { width: 100%; }
   .reco-tabela thead th .mini { font-weight: 400; color: var(--vib-3); }
   .reco-tabela tbody tr { cursor: pointer; }
@@ -445,6 +474,7 @@
     h1 { font-size: 22px; }
     .painel { padding: 18px 16px 16px; }
     .tabela-wrap { max-height: none; }
+    .craft-ctl label { white-space: normal; }
   }
 </style>
 </head>
@@ -657,6 +687,7 @@
   <nav class="abas craft-sub" aria-label="Modo da aba Craft">
     <button type="button" class="aba ativa" data-craftmodo="reco">O que craftar</button>
     <button type="button" class="aba" data-craftmodo="refino">Refino</button>
+    <button type="button" class="aba" data-craftmodo="nivel">Subir nível</button>
     <button type="button" class="aba" data-craftmodo="calc">Calculadora</button>
   </nav>
   <div id="craftCalcWrap" hidden>
@@ -676,6 +707,8 @@
         <input id="craftQtd" type="number" min="1" step="1" value="10">
       </div>
     </div>
+    <div class="craft-lista-itens" id="craftListaItens" hidden></div>
+    <div class="craft-total" id="craftTotalLista" hidden></div>
     <div class="craft-item" id="craftItem" hidden>
       <img class="craft-icone grande" id="craftItemIcone" alt="" width="64" height="64">
       <div>
@@ -684,6 +717,7 @@
         <div class="craft-item-resumo" id="craftItemResumo"></div>
       </div>
       <nav class="abas craft-chips" id="craftEnchs" aria-label="Encantamento"></nav>
+      <div class="craft-mais-tier" id="craftMaisTier" hidden></div>
       <div class="craft-spec">
         <label>Minha especialização <input type="number" id="craftSpecNivel" class="qtd" min="0" max="100" step="1" placeholder="0 a 100" title="Nível de especialização neste item. Fica salvo na sua conta e marca as recomendações."></label>
         <label>Foco por craft <input type="number" id="craftSpecFoco" class="qtd" min="0" step="1" placeholder="do painel" title="Quanto foco o painel da estação mostra por craft deste item com a sua especialização. Opcional: dá lucro por foco."></label>
@@ -821,9 +855,34 @@
     </div>
   </section>
   </div>
-  </div>
 
-  <div id="abaGuia" class="guia" hidden>  </div>
+  <div id="craftNivelWrap" hidden>
+  <section class="painel mat-chrome">
+    <div class="controles">
+      <div class="campo campo-busca"><label for="nivelNo">O que você quer craftar <span class="ajuda">ramo no Quadro do Destino</span></label><select id="nivelNo"></select></div>
+      <div class="campo"><label for="nivelAtual">Nível de hoje <span class="ajuda">0 a 99</span></label><input id="nivelAtual" type="number" min="0" max="99" step="1" value="0" title="O nível do ramo no Quadro do Destino. Zero é quem nunca craftou nada desse ramo acima do T3."></div>
+      <div class="campo"><label for="nivelAlvo">Quero liberar</label><select id="nivelAlvo"></select></div>
+      <div class="campo"><label for="nivelPremium">Premium</label><select id="nivelPremium" title="Premium dá 50% a mais de fama no craft e no estudo, e a taxa de venda cai de 8% pra 4%"><option value="premium" selected>Tenho (fama +50%, taxa 4%)</option><option value="normal">Não tenho (taxa 8%)</option></select></div>
+      <div class="campo"><label for="nivelFoco">Uso foco</label><select id="nivelFoco" title="Com foco voltam mais materiais em cada craft. A página soma o foco que o plano inteiro pede."><option value="nao" selected>Não</option><option value="sim">Sim, em todos os crafts</option></select></div>
+      <div class="campo"><label for="nivelCidades">Cidades na rota</label><select id="nivelCidades" title="Quantas cidades diferentes a rota de cada item pode ter: comprar, craftar e vender"><option value="3" selected>Até 3 (mais barato)</option><option value="2">Até 2</option><option value="1">Só 1 (tudo na mesma cidade)</option></select></div>
+      <div class="campo"><label for="nivelIdade">Idade máx. do preço</label><select id="nivelIdade" title="Preço visto há mais tempo que isso não entra na conta"><option value="1">1 hora</option><option value="3">3 horas</option><option value="6">6 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>
+      <div class="campo"><label for="nivelMinDia">Mín. vendas/dia na venda</label><input id="nivelMinDia" type="number" min="0" step="1" value="1" title="Só vale pra opção de vender: o lugar de venda precisa negociar pelo menos isso por dia (média de 7 dias)"></div>
+      <div class="campo"><label for="nivelDias">Vender tudo em até</label><select id="nivelDias" title="Só vale pra opção de vender: limita cada item ao que o lugar de venda negocia nesse prazo; o que passar disso vai pro próximo item mais barato"><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option><option value="0">Sem limite</option></select></div>
+      <div class="campo"><label for="nivelTaxa">Taxa da estação <span class="ajuda">por 100 de nutrição</span></label><input id="nivelTaxa" type="number" min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. A página converte por item: nutrição = 11,25% do valor do item. Entra no craft e no estudo."></div>
+      <div class="campo"><span class="grupo-label">Rests (zona negra)</span><label class="craft-check" title="Arthur's, Merlyn's e Morgana's Rest: comprar, craftar e vender lá. Rota passa pela zona negra (perde tudo se morrer)."><input type="checkbox" class="caixa" id="nivelRests"> incluir nas rotas</label></div>
+    </div>
+    <div class="acoes">
+      <button type="button" class="primario" id="nivelBuscar">Calcular quanto custa subir</button>
+      <span class="barra" id="nivelBarra" hidden><i></i></span>
+      <span class="status" id="nivelStatus">Escolha o ramo, o seu nível de hoje e o tier que quer liberar. A página monta o plano mais barato de duas formas: craftando e vendendo os itens, e craftando e estudando.</span>
+    </div>
+  </section>
+  <section class="mat-card craft-bloco" id="nivelResultado" hidden>
+    <div class="craft-cab"><h3 id="nivelTitulo">Quanto custa subir</h3><p class="craft-retorno" id="nivelResumo"></p><details class="craft-como"><summary>Como a conta é feita</summary><p id="nivelComo"></p></details></div>
+    <div class="ref-destaque" id="nivelVeredito"></div>
+    <div class="nivel-opcoes" id="nivelOpcoes"></div>
+  </section>
+  </div>
   </div>
 
   <div id="abaGuia" class="guia" hidden>
@@ -909,11 +968,13 @@
       <h2>Aba Craft: onde comprar cada material e quanto rende</h2>
       <p>Digite o nome de um item, recurso ou artefato e escolha na lista. Aparece o item com os encantamentos disponíveis (T4, .1, .2, .3, .4) pra trocar num clique, a qualidade (equipamento), a quantidade a fazer e se você usa foco.</p>
       <p><b>Rotas.</b> Item encantado tem mais de um jeito de nascer: craftar direto com material encantado, ou craftar um nível abaixo e encantar com runas, almas e relíquias (que não voltam). A página mostra as rotas com o custo aproximado de cada uma, marca a mais barata e você escolhe. <b>Especialização:</b> no cartão do item você guarda seu nível (0 a 100) e, se quiser, o foco por craft que o painel do jogo mostra; o nível marca as recomendações e o foco vira "lucro por 1.000 de foco". A página não calcula foco nem qualidade a partir do nível: isso o jogo mostra na hora.</p>
+      <p><b>Vários itens de uma vez.</b> Na Calculadora, o item escolhido vira um cartão numa lista. "+ Adicionar item" soma outro item qualquer; no cartão do item aberto, "Somar outro tier à lista" soma a mesma peça em outro tier com um clique (vara de pescar T5, depois T4, depois T6). Cada cartão tem a quantidade a fazer, o custo e o lucro daquele item; clique no cartão pra abrir os detalhes dele. Cidade de cada material, retorno, taxa e rota ficam guardados por item. Com dois itens ou mais aparece o total da lista: quanto você investe, o que sobra na bag, quanto recebe na venda, o lucro, e uma lista de compras só, somando todos os itens por cidade. Qualidade, modo de venda e taxa de venda valem pra lista inteira.</p>
       <p><b>Lista de compras.</b> Embaixo dos totais, o que comprar em cada cidade, com quantidade já descontando o retorno reaproveitado, preço unitário, subtotal, total e peso.</p>
       <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada material diz quantas unidades comprar já descontando o retorno reaproveitado entre um craft e outro (a devolução de um craft entra no seguinte; só a do último sobra na bag), a compra, a sobra e o custo líquido; embaixo, os totais.</p>
       <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,3%. Artefato nunca retorna. Taxa da estação: digite a da estação, em prata por 100 de nutrição; cada unidade consome 11,25% do valor do item (T4 1,8; T8 28,8; dobra a cada encantamento), e a página converte.</p>
       <p><b>O que craftar.</b> O modo que abre primeiro. Cobre tudo que se crafta e vende, não só o que o Black Market compra: armas e armaduras, ferramentas (picareta, foice, faca, martelo de pedra, machado, vara de pesca, kit de rastreio), equipamento de coleta, comida, poção, montaria, kit de reparo e baú. Comida e poção saem várias por craft; a receita aparece por unidade. Você diz o que crafta (tier, encantamento, tipo), quanto tem de prata, se usa foco e as taxas; a página testa as rotas e diz o que fazer: onde comprar cada material, onde craftar (cidade com bônus da categoria do item, tabela da wiki), se vale craftar um nível abaixo e encantar com runas, almas e relíquias, e onde vender (cidades reais ou Black Market, na hora ou com ordem de venda). No topo, "Melhor uso da sua prata agora" com as quantidades totais; na tabela, a conta embaixo de cada número e "mais rotas" com as alternativas. A quantidade é o menor entre o que a prata compra, o que o foco cobre e o que o lugar de venda negocia no prazo escolhido. Foco por item: o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização. "Só os que eu tenho" filtra pelas especializações guardadas. Clique numa linha pra abrir na calculadora.</p>
       <p><b>Refino.</b> O terceiro modo da aba é um motor de rotas. Você escolhe o recurso (ou todos), se usa foco, quanto tem de prata, quantas cidades a rota pode ter e as taxas. A página testa, pra cada tier e encantamento, todas as combinações: comprar o bruto e o refinado anterior em qualquer cidade, refinar em qualquer cidade (cada uma com o bônus que tem pro recurso: Fort Sterling tábuas, Thetford barras, Martlock couro, Lymhurst tecido, Bridgewatch blocos, +40% de bônus; foco +59%; estação 18%; retorno = bônus ÷ (1 + bônus)), vender em qualquer cidade na hora (ordem de compra) ou por ordem de venda (+2,5%), e devolve a rota de maior lucro por unidade, com custo, venda, média de 7 dias, vendas por dia, ROI e, com a sua prata, quantas unidades, o investimento e o lucro total. "Mais rotas" mostra as alternativas. Bônus diário: marque o recurso do dia (menu Atividades do jogo, +10% ou +20%). Taxa da estação: como a estação mostra, prata por 100 de nutrição; cada unidade consome 11,25% do valor do item (T4 1,8; T8 28,8; dobra a cada encantamento). Foco: diga quanto tem (10.000 por dia com premium, até 30.000) e sua especialização (o foco por unidade cai pela metade a cada 25 níveis); a quantidade fica limitada ao foco, e "1.000 de foco = +X" diz quanto ele rende. "Vender tudo em até" limita a quantidade ao que a cidade de venda negocia no prazo. Hideout não entra. No topo, "Melhor uso da sua prata agora" mostra a rota que mais rende com a sua prata, com as quantidades totais a comprar em cada cidade; na tabela, a conta de cada número fica embaixo dele.</p>
+      <p><b>Subir nível.</b> Responde "quanto custa liberar o próximo tier de craft". Você escolhe o ramo do Quadro do Destino (o nome do jogo aparece com os itens que ele cobre: "Fabricante de Pescador: Vara de Pescar…"), o nível de hoje e o tier que quer liberar. A página pega do dump do jogo a fama de cada nível (T4 no nível 1, T5 no 10, T6 no 30, T7 no 60, T8 no 100) e monta o plano mais barato de duas formas: <b>craftar e vender</b> os itens (o custo é o que você gasta menos o que recebe; cada lugar de venda fica limitado ao que negocia no prazo que você escolher, e o plano espalha a venda por várias cidades) e <b>craftar e estudar</b> (o item é destruído e a fama vem 3,75 vezes: a do craft mais 2,75 vezes do estudo). Em cada etapa entra o item que dá mais fama por prata entre os que você já pode craftar, com os passos de onde comprar, onde craftar e onde vender. Quando misturar as duas formas sai mais barato (estudar numa etapa, vender na outra), a página mostra esse plano primeiro. Premium conta +50% de fama. Com foco, a página soma o foco que o plano pede e em quantos dias ele se junta. O estudo cobra taxa de uso da estação, contada igual à do craft; confira na estação.</p>
       <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. O Black Market de Caerleon entra como linha (ele só compra, na hora, e só equipamento). Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
 
@@ -1751,7 +1812,14 @@
   const semRetorno = (ent) => ent[2] === 0 || SEM_RETORNO.has(infoItem(ent[0]).tipo);
   // Valor do item (pra taxa da estação): material tem no dump; equipamento é a soma do valor dos materiais.
   const valorItemDe = (id, prof = 0) => { const R = window.ALBION_RECEITAS, m = R.m[id]; if (m && m[5]) return m[5]; if (prof > 3 || !R.r[id]) return 0; return R.r[id].reduce((a, [x, q]) => a + valorItemDe(x, prof + 1) * q, 0); };
-  const craft = { pronto: false, familias: [], familia: null, ench: 0, rota: 'auto', precos: null, hist: null, cidadeDe: new Map(), manual: new Map(), modo: new Map(), cidVenda: null, qualVenda: null, manualVenda: null };
+  // A calculadora trabalha com uma lista de itens. Cada item guarda o que é dele: encantamento, rota, preços, cidade e
+  // preço manual de cada material, comprar ou refinar, venda, quantidade, retornos e taxas, e o resultado da última
+  // conta (`res`). Os campos de CAMPOS_DO_ITEM em `craft` sempre apontam pro item aberto na tela.
+  const CAMPOS_DO_ITEM = ['familia', 'ench', 'rota', 'precos', 'hist', 'cidadeDe', 'manual', 'modo', 'cidVenda', 'qualVenda', 'manualVenda'];
+  const novoItemCraft = () => ({ familia: null, ench: 0, rota: 'auto', precos: null, hist: null, cidadeDe: new Map(), manual: new Map(), modo: new Map(), cidVenda: null, qualVenda: null, manualVenda: null, qtd: '10', retCraft: '15.3', taxaCraft: '0', refino: new Map(), res: null });
+  const craft = { pronto: false, familias: [], lista: [novoItemCraft()], ativa: 0 };
+  for (const k of CAMPOS_DO_ITEM) Object.defineProperty(craft, k, { get: () => craft.lista[craft.ativa][k], set: (v) => { craft.lista[craft.ativa][k] = v; } });
+  const itemAberto = () => craft.lista[craft.ativa];
   const c = (id) => $('craft' + id);
   const craftStatus = (msg, erro = false) => { c('Status').textContent = msg; c('Status').classList.toggle('erro', erro); };
   const semAcento = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -1826,6 +1894,9 @@
     craft.familias = [...fam.values()].map((f) => { const e0 = Math.min(...Object.keys(f.variantes).map(Number)); f.nome = f.nomes[e0]; f.busca = semAcento(`${f.nome} t${f.tier} ${f.tipo}`); return f; });
     craft.familiaPorId = new Map();
     for (const f of craft.familias) for (const id of Object.values(f.variantes)) craft.familiaPorId.set(id, f);
+    // A mesma peça nos outros tiers, pra somar outro tier à lista com um clique.
+    craft.irmas = new Map();
+    for (const f of craft.familias) { const k = f.chave.replace(/^T\d_/, ''); if (!craft.irmas.has(k)) craft.irmas.set(k, []); craft.irmas.get(k).push(f); }
     const cidades = MERCADOS;
     c('TudoEm').innerHTML = '<option value="" selected>mais barato em cada</option>' + cidades.map((n) => `<option value="${n}">${n}</option>`).join('');
     craft.qual = criarMulti(c('Qual'), [1, 2, 3, 4, 5].map((q) => ({ valor: q, rotulo: QUALIDADE[q] })), [1, 2, 3, 4, 5]);
@@ -1858,7 +1929,7 @@
     lista.addEventListener('mousedown', (ev) => { const b = ev.target.closest('button'); if (b) { ev.preventDefault(); escolher(Number(b.dataset.i)); } });
     document.addEventListener('click', (ev) => { if (!ev.target.closest('.campo-busca')) fechar(); });
     c('Buscar').addEventListener('click', () => {
-      if (craft.familia && semAcento(busca.value.trim()) === semAcento(craft.familia.nome)) return buscarCraft();
+      if (craft.familia && semAcento(busca.value.trim()) === semAcento(craft.familia.nome)) return buscarLista();
       sugerir();
       if (atuais.length === 1) escolher(0); else craftStatus(atuais.length ? 'Escolha o item na lista de sugestões.' : 'Nenhum item com esse nome.', true);
     });
@@ -1867,15 +1938,35 @@
       $('craftCalcWrap').hidden = b.dataset.craftmodo !== 'calc';
       $('craftRecoWrap').hidden = b.dataset.craftmodo !== 'reco';
       $('craftRefinoWrap').hidden = b.dataset.craftmodo !== 'refino';
+      $('craftNivelWrap').hidden = b.dataset.craftmodo !== 'nivel';
       if (b.dataset.craftmodo === 'reco') iniciarReco();
       if (b.dataset.craftmodo === 'refino') iniciarRefino();
+      if (b.dataset.craftmodo === 'nivel') iniciarNivel();
     }));
     iniciarReco(); // "O que craftar" é o modo que abre primeiro
-    c('Enchs').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ench]'); if (!b || !craft.familia) return; craft.ench = Number(b.dataset.ench); craft.rota = 'auto'; craft.manual.clear(); craft.manualVenda = null; craft.modo.clear(); mostrarItem(); buscarCraft(); });
+    c('Enchs').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ench]'); if (!b || !craft.familia) return; craft.ench = Number(b.dataset.ench); craft.rota = 'auto'; craft.manual.clear(); craft.manualVenda = null; craft.modo.clear(); Object.assign(itemAberto(), { precos: null, hist: null, res: null }); mostrarItem(); buscarCraft(); });
     c('Rotas').addEventListener('click', (ev) => { const b = ev.target.closest('[data-rota]'); if (!b) return; craft.rota = b.dataset.rota; renderMateriais(); calcularCraft(); });
     for (const id of ['SpecNivel', 'SpecFoco']) c(id).addEventListener('input', () => { guardarSpec(); calcularCraft(); });
-    c('Qual').addEventListener('change', () => { if (craft.precos) { craft.manualVenda = null; renderVenda(); calcularCraft(); } });
+    // Qualidade, modo de venda e taxa valem pra lista inteira: refaz a conta de todos os itens.
+    c('Qual').addEventListener('change', () => { for (const x of craft.lista) x.manualVenda = null; recalcularLista(); });
     for (const id of ['Qtd', 'RetCraft', 'TaxaCraft']) c(id).addEventListener('input', calcularCraft);
+    // Barra da lista: abrir um item, tirar da lista, mudar a quantidade e somar outro item.
+    c('ListaItens').addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-add]')) { adicionarNaLista(); return; }
+      const cartao = ev.target.closest('[data-i]');
+      if (!cartao) return;
+      const i = Number(cartao.dataset.i);
+      if (ev.target.closest('[data-remover]')) removerDaLista(i);
+      else if (!ev.target.closest('label') && i !== craft.ativa) abrirDaLista(i);
+    });
+    c('ListaItens').addEventListener('input', (ev) => {
+      const inp = ev.target.closest('[data-qtd]');
+      if (!inp) return;
+      const i = Number(inp.closest('[data-i]').dataset.i);
+      craft.lista[i].qtd = inp.value;
+      if (i === craft.ativa) { c('Qtd').value = inp.value; calcularCraft(); } else recalcularLista([i]);
+    });
+    c('MaisTier').addEventListener('click', (ev) => { const b = ev.target.closest('[data-familia]'); if (b) adicionarNaLista(craft.familias.find((f) => f.chave === b.dataset.familia)); });
     c('TudoEm').addEventListener('change', () => {
       const cid = c('TudoEm').value;
       for (const linha of c('Materiais').querySelectorAll('.craft-linha')) { if (cid) craft.cidadeDe.set(linha.dataset.id, cid); else craft.cidadeDe.delete(linha.dataset.id); craft.manual.delete(linha.dataset.id); preencherLinha(linha); }
@@ -1890,11 +1981,105 @@
     c('Materiais').addEventListener('input', (ev) => {
       const inp = ev.target.closest('[data-manual]');
       if (inp) { const v = num(inp); if (v === null) craft.manual.delete(inp.dataset.manual); else craft.manual.set(inp.dataset.manual, v); }
-      if (inp || ev.target.matches('[data-ret-refino], [data-taxa-refino]')) calcularCraft();
+      const doRefino = ev.target.matches('[data-ret-refino], [data-taxa-refino]');
+      if (doRefino) { const bloco = ev.target.closest('.craft-mat'); itemAberto().refino.set(bloco.dataset.mat, { ret: bloco.querySelector('[data-ret-refino]').value, taxa: bloco.querySelector('[data-taxa-refino]').value }); }
+      if (inp || doRefino) calcularCraft();
     });
     c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio') || !cel.dataset.q) return; craft.cidVenda = cel.dataset.cid; craft.qualVenda = Number(cel.dataset.q); craft.manualVenda = null; renderVenda(); calcularCraft(); });
     c('PrecoVenda').addEventListener('input', () => { craft.manualVenda = num(c('PrecoVenda')); calcularCraft(); });
-    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null; renderVenda(); calcularCraft(); });
+    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { for (const x of craft.lista) { x.cidVenda = null; x.qualVenda = null; x.manualVenda = null; } recalcularLista(); });
+  }
+
+  // ---- lista de itens da calculadora ----
+  // Põe na tela os controles que são de cada item: quantidade, retorno e taxa do craft.
+  function controlesDoItem() { const x = itemAberto(); c('Qtd').value = x.qtd; c('RetCraft').value = x.retCraft; c('TaxaCraft').value = x.taxaCraft; }
+  function abrirDaLista(i) {
+    craft.ativa = i;
+    const x = itemAberto();
+    controlesDoItem();
+    c('TudoEm').value = '';
+    c('Busca').value = x.familia ? x.familia.nome : '';
+    if (!x.familia) {
+      c('Item').hidden = true; c('Mat').hidden = true; c('Venda').hidden = true;
+      renderListaCraft();
+      craftStatus('Digite o nome do próximo item e escolha na lista.');
+      c('Busca').focus();
+      return;
+    }
+    mostrarItem();
+    if (x.precos) { renderMateriais(); renderVenda(); calcularCraft(); } else { c('Mat').hidden = true; c('Venda').hidden = true; buscarCraft(); } // sem preço ainda: some o que era do item anterior
+  }
+  // "+": abre um item novo na lista. Com família, ele já entra escolhido (outro tier da mesma peça), com o
+  // encantamento, a quantidade, o retorno e a taxa do item aberto.
+  function adicionarNaLista(familia) {
+    const atual = itemAberto();
+    if (!familia && !atual.familia) { c('Busca').focus(); return; }
+    const novo = novoItemCraft();
+    if (familia) Object.assign(novo, { familia, ench: familia.variantes[atual.ench] ? atual.ench : Math.min(...Object.keys(familia.variantes).map(Number)), qtd: atual.qtd, retCraft: atual.retCraft, taxaCraft: atual.taxaCraft });
+    craft.lista.push(novo);
+    abrirDaLista(craft.lista.length - 1);
+  }
+  function removerDaLista(i) {
+    craft.lista.splice(i, 1);
+    if (!craft.lista.length) craft.lista.push(novoItemCraft());
+    abrirDaLista(Math.min(i < craft.ativa ? craft.ativa - 1 : craft.ativa, craft.lista.length - 1));
+  }
+  // Refaz a conta de itens da lista. A conta lê os controles e os blocos de material da tela, então cada item é
+  // aberto por baixo dos panos e calculado; no fim a tela volta pro item que estava aberto.
+  function recalcularLista(indices = craft.lista.map((_, i) => i)) {
+    const aberto = craft.ativa;
+    const contar = () => { controlesDoItem(); renderMateriais(); renderVenda(); calcularCraft(); };
+    for (const i of indices) {
+      if (i === aberto || !craft.lista[i].familia || !craft.lista[i].precos) continue;
+      craft.ativa = i; contar();
+    }
+    craft.ativa = aberto;
+    if (itemAberto().familia && itemAberto().precos) contar(); else { controlesDoItem(); c('Mat').hidden = true; c('Venda').hidden = true; atualizarListaCraft(); }
+  }
+  // "Buscar preços" com a lista montada: atualiza os preços de todos os itens, um por vez.
+  async function buscarLista() { for (const x of craft.lista.filter((y) => y.familia)) await buscarCraft(x); }
+  // Barra da lista: um cartão por item, com a quantidade, e o "+" pra somar outro.
+  function renderListaCraft() {
+    c('ListaItens').hidden = !craft.lista.some((x) => x.familia);
+    c('ListaItens').innerHTML = craft.lista.map((x, i) => {
+      const ativa = i === craft.ativa ? ' ativa' : '';
+      if (!x.familia) return `<div class="craft-lista-item${ativa}" data-i="${i}"><span class="meta">Novo item: digite o nome lá em cima</span><button type="button" class="link" data-remover title="Tirar da lista" aria-label="Tirar da lista">×</button></div>`;
+      const id = x.familia.variantes[x.ench], info = infoItem(id);
+      return `<div class="craft-lista-item${ativa}" data-i="${i}"><img class="craft-icone" src="${iconeUrl(id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><div><div class="nome">${escapar(info.nome)} <span class="tier">${rotuloTier(info.tier, info.ench)}</span></div><div class="meta" data-res></div></div><label title="Quantidade a fazer">fazer <input type="number" class="qtd" min="1" step="1" data-qtd value="${escapar(String(x.qtd))}" aria-label="Quantidade a fazer"></label><button type="button" class="link" data-remover title="Tirar da lista" aria-label="Tirar da lista">×</button></div>`;
+    }).join('') + '<button type="button" class="craft-lista-add" data-add>+ Adicionar item</button>';
+    atualizarListaCraft();
+  }
+  // Números de cada cartão, total e lista de compras da lista inteira. Não recria os cartões: quem está digitando a
+  // quantidade não perde o cursor.
+  function atualizarListaCraft() {
+    const sinal = (v) => (v >= 0 ? '+' : '') + fmt.format(Math.round(v));
+    craft.lista.forEach((x, i) => {
+      const cartao = c('ListaItens').querySelector(`[data-i="${i}"]`);
+      if (!cartao || !x.familia) return;
+      const r = x.res;
+      cartao.querySelector('[data-res]').innerHTML = !x.precos ? 'buscando preços…' : !r ? 'sem receita: só preços' : r.falta ? 'falta preço de material' : `custo <b>${fmt.format(Math.round(r.liquido))}</b>${r.lucro === null ? ' · sem preço de venda' : ` · lucro <b class="${r.lucro >= 0 ? 'c-lucro' : 'c-custo'}">${sinal(r.lucro)}</b>`}`;
+      const inp = cartao.querySelector('[data-qtd]');
+      if (document.activeElement !== inp && inp.value !== String(x.qtd)) inp.value = x.qtd;
+    });
+    const comConta = craft.lista.filter((x) => x.familia && x.res);
+    c('TotalLista').hidden = comConta.length < 2;
+    if (comConta.length < 2) return;
+    const fechados = comConta.filter((x) => !x.res.falta), semMat = comConta.length - fechados.length;
+    const semVenda = fechados.filter((x) => x.res.vendaLiq === null).length;
+    const soma = (k) => fechados.reduce((a, x) => a + (x.res[k] || 0), 0);
+    const compra = soma('compra'), taxas = soma('taxas'), investe = compra + taxas, sobra = soma('sobra'), recebe = soma('vendaLiq'), liquido = soma('liquido');
+    const lucro = semVenda ? null : recebe - liquido;
+    const unidades = fechados.reduce((a, x) => a + x.res.n, 0);
+    const cartao = (rotulo, valor, classe, sub, destaque) => `<div class="cartao${destaque ? ' destaque' : ''}"><span>${rotulo}</span><b class="${classe}">${valor}</b><span>${sub}</span></div>`;
+    // Lista de compras dos itens que fecham a conta: o mesmo material na mesma cidade e pelo mesmo preço vira uma linha só.
+    const juntas = new Map();
+    for (const x of fechados) for (const y of x.res.compras) { const k = `${y.cidade}|${y.id}|${y.unit}`; if (juntas.has(k)) juntas.get(k).qtd += y.qtd; else juntas.set(k, { ...y }); }
+    c('TotalLista').innerHTML = `<h3 class="craft-lista-titulo">Total da lista: ${fmt.format(unidades)} itens de ${fechados.length} tipos</h3><div class="craft-cartoes">${[
+      cartao('Você investe', fmt.format(Math.round(investe)), 'c-custo', `${extenso(investe)} · compras ${fmt.format(Math.round(compra))} + taxas ${fmt.format(Math.round(taxas))}`),
+      cartao('Sobra na bag', '−' + fmt.format(Math.round(sobra)), 'c-lucro', 'materiais que voltam no último craft de cada item'),
+      cartao('Recebe na venda', fmt.format(Math.round(recebe)), 'c-bm', `${extenso(recebe)} · já sem a taxa de venda${semVenda ? ` · ${semVenda} item(ns) sem preço de venda` : ''}`),
+      cartao('Lucro', lucro === null ? '—' : sinal(lucro), 'c-lucro', lucro === null ? 'falta preço de venda de algum item' : `${extenso(lucro)} · recebe − investe + sobra na bag`, true),
+    ].join('')}</div>${semMat ? `<p class="craft-retorno">${semMat} item(ns) fora do total e da lista de compras: falta preço de material. Abra o item e digite o preço que falta.</p>` : ''}<details class="craft-como"><summary>Lista de compras de todos os itens</summary><div class="craft-lista">${listaComprasHtml([...juntas.values()])}</div></details>`;
   }
 
   function escolherFamilia(f) {
@@ -1902,6 +2087,7 @@
     craft.ench = Math.min(...Object.keys(f.variantes).map(Number));
     craft.rota = 'auto';
     craft.cidadeDe.clear(); craft.manual.clear(); craft.modo.clear(); craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null;
+    Object.assign(itemAberto(), { precos: null, hist: null, res: null, refino: new Map() });
     c('Busca').value = f.nome;
     mostrarItem();
     buscarCraft();
@@ -1929,7 +2115,12 @@
     c('SpecFoco').value = focoDe(f, craft.ench) ?? '';
     document.querySelector('.craft-spec').hidden = !equipDe(id);
     c('Enchs').innerHTML = Object.keys(f.variantes).map(Number).sort((a, b) => a - b).map((e) => `<button type="button" class="aba${e === craft.ench ? ' ativa' : ''}" data-ench="${e}" title="${escapar(f.nomes[e])}">${e ? '.' + e : 'T' + f.tier}</button>`).join('');
+    // A mesma peça nos tiers que ainda não estão na lista: um clique soma mais um item.
+    const irmas = (craft.irmas.get(f.chave.replace(/^T\d_/, '')) || []).filter((x) => !craft.lista.some((y) => y.familia === x)).sort((a, b) => a.tier - b.tier);
+    c('MaisTier').hidden = !irmas.length;
+    c('MaisTier').innerHTML = `<span>Somar outro tier à lista</span><nav class="abas craft-chips">${irmas.map((x) => `<button type="button" class="aba" data-familia="${x.chave}" title="${escapar(x.nome)}">+ T${x.tier}</button>`).join('')}</nav>`;
     c('Item').hidden = false;
+    renderListaCraft();
   }
 
   // Rotas de um equipamento encantado: craftar direto com material encantado, ou craftar um nível abaixo e encantar
@@ -1960,17 +2151,19 @@
     return total;
   }
   // Ids que a calculadora precisa: o item, cada material de cada rota e, pros refinados, o bruto e o refinado anterior.
-  function idsDoCraft(id) {
+  function idsDoCraft(id, familia) {
     const R = window.ALBION_RECEITAS;
     const ids = new Set([id]);
-    for (const rota of rotasDe(id, craft.familia)) for (const [m] of rota.mats) { ids.add(m); for (const [s] of R.r[m] || []) ids.add(s); }
+    for (const rota of rotasDe(id, familia)) for (const [m] of rota.mats) { ids.add(m); for (const [s] of R.r[m] || []) ids.add(s); }
     return [...ids];
   }
-  async function buscarCraft() {
-    const id = itemAtual();
+  // Busca os preços de um item da lista (o aberto, se nenhum for passado). A resposta vai pro item que pediu, mesmo
+  // que outro esteja aberto quando ela chegar.
+  async function buscarCraft(ent = itemAberto()) {
+    const id = ent.familia ? ent.familia.variantes[ent.ench] : null;
     if (!id) return;
     const base = SERVIDORES[el.servidor.value];
-    const ids = idsDoCraft(id);
+    const ids = idsDoCraft(id, ent.familia);
     const hoje = new Date(), inicio = new Date(hoje.getTime() - 7 * 864e5);
     const dia = (d) => d.toISOString().slice(0, 10);
     c('Buscar').disabled = true;
@@ -1980,28 +2173,33 @@
         buscar(`${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${MERCADOS_API},BlackMarket`),
         buscar(`${base}/api/v2/stats/history/${id}.json?locations=${MERCADOS_API},BlackMarket&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`),
       ]);
-      if (itemAtual() !== id) return; // trocou de item no meio da busca
-      craft.precos = new Map(); // id -> cidade -> qualidade -> { venda: {p,d}|null, compra: {p,d}|null }
+      if (!craft.lista.includes(ent) || !ent.familia || ent.familia.variantes[ent.ench] !== id) return; // saiu da lista ou trocou de item no meio da busca
+      ent.precos = new Map(); // id -> cidade -> qualidade -> { venda: {p,d}|null, compra: {p,d}|null }
       for (const row of precos) {
         const cid = nomeMercado(row.city);
         if (!cid) continue;
-        if (!craft.precos.has(row.item_id)) craft.precos.set(row.item_id, {});
-        (craft.precos.get(row.item_id)[cid] ||= {})[row.quality] = {
+        if (!ent.precos.has(row.item_id)) ent.precos.set(row.item_id, {});
+        (ent.precos.get(row.item_id)[cid] ||= {})[row.quality] = {
           venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null,
           compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null,
         };
       }
-      craft.hist = {}; // cidade -> qualidade -> { media, porDia }
+      ent.hist = {}; // cidade -> qualidade -> { media, porDia }
       for (const hh of hist) {
         const r = resumirHistorico(hh.data);
         if (!r) continue;
         const cid = nomeMercado(hh.location);
         if (!cid) continue;
         const qtd = hh.data.reduce((a, p) => a + (p.item_count || 0), 0);
-        (craft.hist[cid] ||= {})[hh.quality] = { media: r.media, qtd, porDia: qtd / 7 };
+        (ent.hist[cid] ||= {})[hh.quality] = { media: r.media, qtd, porDia: qtd / 7 };
       }
-      if (rotasDe(id, craft.familia).length && !MERCADOS.some((cid) => precoEm(id, cid, 'compra')) && MERCADOS.some((cid) => precoEm(id, cid, 'venda'))) c('ModoVenda').value = 'ordem';
-      renderMateriais(); renderVenda(); calcularCraft();
+      if (itemAberto() !== ent) recalcularLista([craft.lista.indexOf(ent)]); // chegou com outro item aberto: conta por baixo dos panos
+      else {
+        // Item sem ordem de compra em lugar nenhum: a venda passa pra ordem de venda. Só com um item na lista, porque o
+        // modo de venda vale pra lista inteira.
+        if (craft.lista.length === 1 && rotasDe(id, ent.familia).length && !MERCADOS.some((cid) => precoEm(id, cid, 'compra')) && MERCADOS.some((cid) => precoEm(id, cid, 'venda'))) c('ModoVenda').value = 'ordem';
+        renderMateriais(); renderVenda(); calcularCraft();
+      }
       const info = infoItem(id);
       craftStatus(`${info.nome} ${rotuloTier(info.tier, info.ench)}: preços buscados às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. "Há" é quando alguém viu aquele preço no jogo.`);
     } catch (err) {
@@ -2046,8 +2244,9 @@
     c('Materiais').innerHTML = receita.map((ent) => {
       const [mid, q] = ent;
       const m = infoItem(mid), sub = R.r[mid];
+      const ref = itemAberto().refino.get(mid) || { ret: '15.3', taxa: '0' }; // retorno e taxa do refino que você já digitou neste item
       const modo = sub ? `<nav class="abas craft-modo"><button type="button" class="aba" data-modo="comprar">Comprar pronto</button><button type="button" class="aba" data-modo="refinar">Refinar do bruto</button></nav>` : '';
-      const subHtml = sub ? `<div class="craft-sub"><div class="craft-preco"><label>Retorno no refino <input type="number" class="qtd" data-ret-refino min="0" max="99" step="0.1" value="15.3" title="Copie do painel da estação de refino no jogo"> %</label><label>Taxa da estação de refino <span class="ajuda">por 100 de nutrição</span> <input type="number" class="qtd" data-taxa-refino min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. Cada unidade refinada consome 11,25% do valor dela (T4 1,8; T8 28,8)."></label></div>${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${qtdTxt(sq)} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
+      const subHtml = sub ? `<div class="craft-sub"><div class="craft-preco"><label>Retorno no refino <input type="number" class="qtd" data-ret-refino min="0" max="99" step="0.1" value="${escapar(ref.ret)}" title="Copie do painel da estação de refino no jogo"> %</label><label>Taxa da estação de refino <span class="ajuda">por 100 de nutrição</span> <input type="number" class="qtd" data-taxa-refino min="0" step="1" value="${escapar(ref.taxa)}" title="Como a estação mostra: prata por 100 de nutrição. Cada unidade refinada consome 11,25% do valor dela (T4 1,8; T8 28,8)."></label></div>${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${qtdTxt(sq)} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
       return `<div class="craft-mat" data-mat="${mid}" data-tipo="${m.tipo}">
         <div class="craft-mat-cab">
           <img class="craft-icone" src="${iconeUrl(mid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'">
@@ -2069,7 +2268,7 @@
   // Comprar pronto ou refinar: o que você clicou; sem clique, o mais barato com preço.
   const modoDe = (mid, sub, custoRef, pm) => { if (!sub) return 'comprar'; const m = craft.modo.get(mid); if (m) return m; return custoRef !== null && (pm === null || custoRef < pm) ? 'refinar' : 'comprar'; };
   // Lista de compras agrupada por cidade, com peso total.
-  function renderLista(compras) {
+  function listaComprasHtml(compras) {
     const R = window.ALBION_RECEITAS;
     const porCidade = new Map();
     for (const x of compras) { const cid = x.cidade || 'sem cidade com preço'; if (!porCidade.has(cid)) porCidade.set(cid, []); porCidade.get(cid).push(x); }
@@ -2079,11 +2278,13 @@
       prata += sub;
       return `<div class="craft-lista-cid"><div class="craft-lista-cab"><b>${escapar(cid)}</b><span>${fmt.format(Math.round(sub))}</span></div>${itens.map((x) => { const info = infoItem(x.id); const pz = (R.m[x.id] || [])[4] || 0; peso += pz * x.qtd; return `<div class="craft-lista-linha"><img class="craft-icone" src="${iconeUrl(x.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span>${fmt.format(x.qtd)} × ${escapar(info.nome)} <span class="tier">${rotuloTier(info.tier, info.ench)}</span></span><span class="num">${x.unit === null ? 'falta preço' : `${fmt.format(x.unit)} · <b>${fmt.format(Math.round(x.qtd * x.unit))}</b>`}</span></div>`; }).join('')}</div>`;
     });
-    c('Lista').innerHTML = compras.length ? blocos.join('') + `<p class="craft-lista-total">Total: <b>${fmt.format(Math.round(prata))}</b> de prata · peso <b>${peso.toFixed(1).replace('.', ',')}</b>. Quantidades já descontam o retorno reaproveitado; a sobra do último craft fica na bag.</p>` : '';
+    return compras.length ? blocos.join('') + `<p class="craft-lista-total">Total: <b>${fmt.format(Math.round(prata))}</b> de prata · peso <b>${peso.toFixed(1).replace('.', ',')}</b>. Quantidades já descontam o retorno reaproveitado; a sobra do último craft fica na bag.</p>` : '';
   }
   function calcularCraft() {
-    const R = window.ALBION_RECEITAS, id = itemAtual();
+    const R = window.ALBION_RECEITAS, id = itemAtual(), ent = itemAberto();
     if (!id || !craft.precos) return;
+    // Quantidade, retorno e taxa do craft são de cada item da lista: ficam guardados nele.
+    Object.assign(ent, { qtd: c('Qtd').value, retCraft: c('RetCraft').value, taxaCraft: c('TaxaCraft').value, res: null });
     const receita = receitaAtual();
     const compras = []; // lista de compras: { id, qtd, unit, cidade }
     const n = Math.max(1, Math.round(num(c('Qtd')) || 1));
@@ -2140,7 +2341,7 @@
         nums[1].textContent = lSobra > 0.5 ? '−' + fmt.format(Math.round(lSobra)) : '0';
         nums[2].textContent = fmt.format(Math.round(lLiquido));
       }
-      renderLista(compras);
+      c('Lista').innerHTML = listaComprasHtml(compras);
       c('Totais').innerHTML = falta ? cartao('Falta preço', 'preencha', 'c-custo', 'digite o preço unitário nas linhas marcadas') : [
         cartao('Compra no mercado', fmt.format(Math.round(compra)), 'c-custo', 'nas quantidades "comprar", já descontando o retorno reaproveitado'),
         cartao('Sobra na bag', '−' + fmt.format(Math.round(sobra)), 'c-lucro', 'o que volta no último craft e no arredondamento; vale isso em prata'),
@@ -2149,10 +2350,11 @@
       ].join('');
     }
     const venda = craft.manualVenda ?? num(c('PrecoVenda'));
-    if (!receita) { c('Resultado').innerHTML = ''; c('ItemResumo').textContent = ''; return; }
+    if (!receita) { c('Resultado').innerHTML = ''; c('ItemResumo').textContent = ''; atualizarListaCraft(); return; }
     const taxa = (c('Premium').value === 'premium' ? 0.04 : 0.08) + (c('ModoVenda').value === 'ordem' ? 0.025 : 0);
     const vendaLiq = venda === null ? null : venda * (1 - taxa) * n;
     const lucro = vendaLiq === null || falta ? null : vendaLiq - liquido;
+    ent.res = { n, falta, compra, sobra, taxas, liquido, vendaLiq, lucro, compras };
     const foco = focoDe(craft.familia, craft.ench);
     c('ItemResumo').innerHTML = falta ? 'Falta preço de material pra fechar a conta.' : `Custo líquido <b class="c-custo">${fmt.format(Math.round(liquido / n))}</b>/un · venda ${venda === null ? 'sem preço' : `<b class="c-bm">${fmt.format(venda)}</b> em ${escapar(c('CidVendaTxt').textContent)}`}${lucro === null ? '' : ` · lucro <b class="c-lucro">${lucro >= 0 ? '+' : ''}${fmt.format(Math.round(lucro / n))}</b>/un · ROI <b class="c-roi">${Math.round((lucro / liquido) * 100)}%</b>`}${foco && lucro !== null ? ` · <b class="c-lucro">${fmt.format(Math.round((lucro / n) / foco * 1000))}</b> por 1.000 de foco` : ''}`;
     c('Resultado').innerHTML = [
@@ -2161,6 +2363,7 @@
       cartao('Lucro', lucro === null ? '—' : (lucro >= 0 ? '+' : '') + fmt.format(Math.round(lucro)), 'c-lucro', lucro === null ? 'falta preço de venda ou de material' : `${lucro >= 0 ? '+' : ''}${fmt.format(Math.round(lucro / n))} por item`, true),
       cartao('ROI', lucro === null || !liquido ? '—' : `${Math.round((lucro / liquido) * 100)}%`, 'c-roi', 'lucro sobre o custo líquido'),
     ].join('');
+    atualizarListaCraft();
   }
 
   // ==== O que craftar: motor de rotas de craft ====
@@ -2184,6 +2387,74 @@
     while (hi - lo > 1) { const mid = Math.floor((lo + hi) / 2); if (invest(mid) <= prata) lo = mid; else hi = mid; }
     return lo;
   };
+  // Filtro de preço das rotas: só entra o que foi visto dentro da idade máxima, num dos mercados da rota, e não é
+  // absurdo. `contagem` soma o que ficou de fora.
+  function filtroDePrecos(dados, cidades, idadeMax, contagem) {
+    const agora = Date.now();
+    const fresco = (x) => { if (agora - x.d > idadeMax) { contagem.velhos++; return false; } return true; };
+    // Ofertas de um material: mercados com preço fresco e não absurdo (abaixo de 25% da mediana entre eles), do mais barato pro mais caro.
+    const cache = new Map();
+    const ofertas = (m) => {
+      if (cache.has(m)) return cache.get(m);
+      const todas = Object.entries(dados.mat.get(m) || {}).filter(([cid]) => cidades.includes(cid)).map(([cid, x]) => ({ cid, p: x.p, d: x.d }));
+      const ref = todas.length >= 3 ? medianaDe(todas.map((o) => o.p)) : null;
+      const lista = todas.filter((o) => fresco(o) && (ref === null || o.p >= ref * 0.25 || !++contagem.absurdos)).sort((a, b) => a.p - b.p);
+      cache.set(m, lista);
+      return lista;
+    };
+    return { agora, fresco, ofertas };
+  }
+  // Vendas possíveis de um item: mercados e Black Market com volume mínimo. Na hora (ordem de compra) ou com ordem de
+  // venda; a média de 7 dias só entra quando não há ordem de venda atual que preste.
+  function vendasDoItem(id, dados, filtro, { locais, minDia, taxaBase, contagem }) {
+    const hItem = dados.hist.get(id) || {}, pItem = dados.venda.get(id) || {};
+    const refVenda = medianaDe(Object.values(hItem).map((x) => x.media));
+    const vendas = [];
+    for (const loc of locais) {
+      const x = pItem[loc] || {}, h7 = hItem[loc] || null;
+      if (!h7 || h7.porDia < minDia) continue;
+      const ok = (y) => y && filtro.fresco(y) && (refVenda === null || y.p <= refVenda * 3 || !++contagem.absurdos);
+      if (ok(x.compra)) vendas.push({ cid: loc, modo: 'nahora', p: x.compra.p, d: x.compra.d, taxa: taxaBase, h7 });
+      if (loc === BM) continue; // o Black Market só compra
+      if (ok(x.venda)) vendas.push({ cid: loc, modo: 'ordem', p: x.venda.p, d: x.venda.d, taxa: taxaBase + 0.025, h7 });
+      else if (refVenda === null || h7.media <= refVenda * 3 || !++contagem.absurdos) vendas.push({ cid: loc, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 });
+    }
+    return vendas;
+  }
+  // Custos de um item: cada rota de craft × cada combinação de compra (as 2 cidades mais baratas de cada material, ou
+  // tudo numa cidade só). Custo por item com e sem o bônus de craft da cidade. `soDireto` deixa de fora as rotas de encantar.
+  function custosDoItem(id, fam, filtro, { cidades, taxaNut, foco, soDireto = false }) {
+    const R = window.ALBION_RECEITAS, custos = [];
+    for (const rt of rotasDe(id, fam)) {
+      if (soDireto && rt.chave !== 'direto') continue;
+      const listas = rt.mats.map((ent) => ({ id: ent[0], q: ent[1], sem: semRetorno(ent), ofertas: filtro.ofertas(ent[0]) }));
+      if (listas.some((l) => !l.ofertas.length)) continue;
+      const combos = [];
+      const montar = (i, atual) => { if (i === listas.length) { combos.push(atual); return; } for (const o of listas[i].ofertas.slice(0, 2)) montar(i + 1, [...atual, { id: listas[i].id, q: listas[i].q, sem: listas[i].sem, cid: o.cid, p: o.p, d: o.d }]); };
+      montar(0, []);
+      for (const cid of cidades) { const tudo = listas.map((l) => { const o = l.ofertas.find((x) => x.cid === cid); return o ? { id: l.id, q: l.q, sem: l.sem, cid, p: o.p, d: o.d } : null; }); if (tudo.every(Boolean)) combos.push(tudo); }
+      // Taxa da estação: nutrição = 11,25% do valor do item craftado (soma do valor dos materiais da receita).
+      const fee = valorItemDe(rt.craftId) * CRAFT_REGRAS.nutricao * taxaNut / 100;
+      const usaFoco = foco && (R.f[rt.craftId] || 0) > 0; // item sem custo de foco no dump (montagem) não aceita foco
+      const rBonus = retornoCraft(true, usaFoco), rSem = retornoCraft(false, usaFoco);
+      for (const compra of combos) {
+        const custoCom = (r) => compra.reduce((a, x) => a + x.p * x.q * (x.sem ? 1 : 1 - r), 0) + fee;
+        custos.push({ rt, compra, lugares: new Set(compra.map((x) => x.cid)), fee, usaFoco, rBonus, rSem, cBonus: custoCom(rBonus), cSem: custoCom(rSem) });
+      }
+    }
+    return custos;
+  }
+  // Onde craftar: na cidade com bônus da categoria (se couber no limite de cidades) ou numa que já está na rota.
+  // `destino` é a cidade da venda; sem venda (item estudado), só as cidades de compra contam.
+  function opcoesDeCraft(x, destino, bonusCids, maxCidades) {
+    const base = new Set(x.lugares);
+    if (destino) base.add(destino);
+    const opcoes = [];
+    for (const bc of bonusCids) { const p = base.has(bc) ? base.size : base.size + 1; if (p <= maxCidades) opcoes.push({ cidCraft: bc, bonus: true, r: x.rBonus, custo: x.cBonus, paradas: p }); }
+    if (base.size <= maxCidades && !bonusCids.some((bc) => base.has(bc))) opcoes.push({ cidCraft: destino && x.lugares.has(destino) ? destino : [...x.lugares][0], bonus: false, r: x.rSem, custo: x.cSem, paradas: base.size });
+    return opcoes;
+  }
+  const bonusDeCraft = (base, comRests) => { const R = window.ALBION_RECEITAS; return [R.b[base] || null, comRests ? R.rb[base] || null : null].filter(Boolean); };
   const reco = { pronto: false, multi: null, dados: null, linhas: [], contagem: null, ordem: 'lucroTotal', direcao: 'desc', aberto: null };
   const rc = (id) => $('reco' + id);
   const recoStatus = (msg, erro = false) => { rc('Status').textContent = msg; rc('Status').classList.toggle('erro', erro); };
@@ -2219,11 +2490,11 @@
       renderReco();
     }));
   }
-  async function buscarReco() {
+  // Preços que um motor de rotas precisa, em lotes: itens (ordens de compra e de venda nos mercados e no Black Market),
+  // materiais (ordens de venda) e histórico de 7 dias dos itens. Qualidade Normal. Chama andar(feitos, total, materiais)
+  // a cada lote e devolve os dados e quantos lotes falharam.
+  async function buscarDadosRotas(itens, andar) {
     const base = SERVIDORES[el.servidor.value];
-    const sel = { tiers: reco.multi.tier.get().map(Number), enchs: reco.multi.ench.get().map(Number), slots: reco.multi.slot.get() };
-    const itens = [...catalogo.values(), ...extrasDoCraft()].filter((i) => passaSelecao(i, sel) && rotasDe(i.id, craft.familiaPorId.get(i.id)).length);
-    if (!itens.length) { recoStatus('Nenhum item craftável nesse recorte.', true); return; }
     const mats = new Set();
     for (const i of itens) for (const rota of rotasDe(i.id, craft.familiaPorId.get(i.id))) for (const [m] of rota.mats) mats.add(m);
     const locsVenda = `${MERCADOS_API},BlackMarket`;
@@ -2240,7 +2511,6 @@
       else if (tipo === 'mat') { for (const row of rows) { const cid = nomeMercado(row.city); if (cid && row.sell_price_min > 0) porLocal(dados.mat, row.item_id)[cid] = { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') }; } }
       else for (const hh of rows) { const r = resumirHistorico(hh.data), cid = nomeMercado(hh.location); if (r && cid) porLocal(dados.hist, hh.item_id)[cid] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 }; }
     };
-    rc('Buscar').disabled = true; rc('Barra').hidden = false; rc('Barra').firstElementChild.style.width = '0%';
     let feitos = 0, falhas = 0;
     const fila = urls.slice();
     const consumir = async () => {
@@ -2248,12 +2518,22 @@
         const [tipo, u] = fila.shift();
         try { tratar(tipo, await buscar(u)); } catch (err) { falhas++; console.error('Falha no lote', err.message); }
         feitos++;
-        rc('Barra').firstElementChild.style.width = `${Math.round((feitos / urls.length) * 100)}%`;
-        recoStatus(`Buscando ${fmt.format(itens.length)} itens e ${fmt.format(mats.size)} materiais nas 7 cidades e no Black Market… ${feitos}/${urls.length}`);
+        andar(feitos, urls.length, mats.size);
       }
     };
+    await Promise.all(Array.from({ length: Math.min(3, fila.length) }, consumir));
+    return { dados, falhas };
+  }
+  async function buscarReco() {
+    const sel = { tiers: reco.multi.tier.get().map(Number), enchs: reco.multi.ench.get().map(Number), slots: reco.multi.slot.get() };
+    const itens = [...catalogo.values(), ...extrasDoCraft()].filter((i) => passaSelecao(i, sel) && rotasDe(i.id, craft.familiaPorId.get(i.id)).length);
+    if (!itens.length) { recoStatus('Nenhum item craftável nesse recorte.', true); return; }
+    rc('Buscar').disabled = true; rc('Barra').hidden = false; rc('Barra').firstElementChild.style.width = '0%';
     try {
-      await Promise.all(Array.from({ length: Math.min(3, fila.length) }, consumir));
+      const { dados, falhas } = await buscarDadosRotas(itens, (feitos, total, nMats) => {
+        rc('Barra').firstElementChild.style.width = `${Math.round((feitos / total) * 100)}%`;
+        recoStatus(`Buscando ${fmt.format(itens.length)} itens e ${fmt.format(nMats)} materiais nos mercados e no Black Market… ${feitos}/${total}`);
+      });
       reco.dados = { itens, dados };
       reco.aberto = null;
       recoStatus('Testando as rotas…');
@@ -2271,69 +2551,22 @@
     const comRests = rc('Rests').checked;
     const cidades = mercadosAtivos(comRests), locais = [...cidades, BM];
     const contagem = { alvos: 0, semSpec: 0, semVenda: 0, semMat: 0, velhos: 0, absurdos: 0 };
-    const fresco = (x) => { if (agora - x.d > idadeMax) { contagem.velhos++; return false; } return true; };
-    // Ofertas de um material: cidades com preço fresco e não absurdo (abaixo de 25% da mediana entre cidades), do mais barato pro mais caro.
-    const cacheOfertas = new Map();
-    const ofertas = (m) => {
-      if (cacheOfertas.has(m)) return cacheOfertas.get(m);
-      const todas = Object.entries(dados.mat.get(m) || {}).map(([cid, x]) => ({ cid, p: x.p, d: x.d }));
-      const ref = todas.length >= 3 ? medianaDe(todas.map((o) => o.p)) : null;
-      const lista = todas.filter((o) => fresco(o) && (ref === null || o.p >= ref * 0.25 || !++contagem.absurdos)).sort((a, b) => a.p - b.p);
-      cacheOfertas.set(m, lista);
-      return lista;
-    };
+    const filtro = filtroDePrecos(dados, cidades, idadeMax, contagem);
     reco.linhas = [];
     for (const it of itens) {
       const fam = craft.familiaPorId.get(it.id), base = familiaDe(it.id);
       const sp = specs.porFamilia[base] || null;
       if (soSpec && !(sp && sp.nivel > 0)) { contagem.semSpec++; continue; }
       contagem.alvos++;
-      // Vendas: cidades reais e Black Market com volume mínimo. Na hora (ordem de compra) ou com ordem de venda; a média
-      // de 7 dias só entra quando não há ordem de venda atual que preste.
-      const hItem = dados.hist.get(it.id) || {}, pItem = dados.venda.get(it.id) || {};
-      const refVenda = medianaDe(Object.values(hItem).map((x) => x.media));
-      const vendas = [];
-      for (const loc of locais) {
-        const x = pItem[loc] || {}, h7 = hItem[loc] || null;
-        if (!h7 || h7.porDia < minDia) continue;
-        const ok = (y) => y && fresco(y) && (refVenda === null || y.p <= refVenda * 3 || !++contagem.absurdos);
-        if (ok(x.compra)) vendas.push({ cid: loc, modo: 'nahora', p: x.compra.p, d: x.compra.d, taxa: taxaBase, h7 });
-        if (loc === BM) continue; // o Black Market só compra
-        if (ok(x.venda)) vendas.push({ cid: loc, modo: 'ordem', p: x.venda.p, d: x.venda.d, taxa: taxaBase + 0.025, h7 });
-        else if (refVenda === null || h7.media <= refVenda * 3 || !++contagem.absurdos) vendas.push({ cid: loc, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 });
-      }
+      const vendas = vendasDoItem(it.id, dados, filtro, { locais, minDia, taxaBase, contagem });
       if (!vendas.length) { contagem.semVenda++; continue; }
-      const bonusCid = R.b[base] || null, bonusRest = comRests ? R.rb[base] || null : null;
-      const bonusCids = [bonusCid, bonusRest].filter(Boolean);
+      const bonusCids = bonusDeCraft(base, comRests);
       const rotas = [];
-      for (const rt of rotasDe(it.id, fam)) {
-        const listas = rt.mats.map((ent) => ({ id: ent[0], q: ent[1], sem: semRetorno(ent), ofertas: ofertas(ent[0]) }));
-        if (listas.some((l) => !l.ofertas.length)) continue;
-        // Compras candidatas: as 2 cidades mais baratas de cada material, e tudo numa cidade só.
-        const combos = [];
-        const montar = (i, atual) => { if (i === listas.length) { combos.push(atual); return; } for (const o of listas[i].ofertas.slice(0, 2)) montar(i + 1, [...atual, { id: listas[i].id, q: listas[i].q, sem: listas[i].sem, cid: o.cid, p: o.p, d: o.d }]); };
-        montar(0, []);
-        for (const cid of cidades) { const tudo = listas.map((l) => { const o = l.ofertas.find((x) => x.cid === cid); return o ? { id: l.id, q: l.q, sem: l.sem, cid, p: o.p, d: o.d } : null; }); if (tudo.every(Boolean)) combos.push(tudo); }
-        // Taxa da estação: nutrição = 11,25% do valor do item craftado (soma do valor dos materiais da receita).
-        const valorItem = valorItemDe(rt.craftId);
-        const fee = valorItem * CRAFT_REGRAS.nutricao * taxaNut / 100;
-        const usaFoco = foco && (R.f[rt.craftId] || 0) > 0; // item sem custo de foco no dump (montagem) não aceita foco
-        const rBonus = retornoCraft(true, usaFoco), rSem = retornoCraft(false, usaFoco);
-        for (const compra of combos) {
-          const lugares = new Set(compra.map((x) => x.cid));
-          const custoCom = (r) => compra.reduce((a, x) => a + x.p * x.q * (x.sem ? 1 : 1 - r), 0) + fee;
-          const cBonus = custoCom(rBonus), cSem = custoCom(rSem);
-          for (const v of vendas) {
-            const destino = cidadeDe(v.cid);
-            const base2 = new Set([...lugares, destino]);
-            // Craftar na cidade com bônus (se couber no limite de cidades) ou numa cidade que já está na rota.
-            const opcoes = [];
-            for (const bc of bonusCids) { const p = base2.has(bc) ? base2.size : base2.size + 1; if (p <= maxCidades) opcoes.push({ cidCraft: bc, bonus: true, custo: cBonus, paradas: p }); }
-            if (base2.size <= maxCidades && !bonusCids.some((bc) => base2.has(bc))) opcoes.push({ cidCraft: lugares.has(destino) ? destino : [...lugares][0], bonus: false, custo: cSem, paradas: base2.size });
-            for (const o of opcoes) {
-              const lucro = v.p * (1 - v.taxa) - o.custo;
-              rotas.push({ rt, compra, cidCraft: o.cidCraft, bonus: o.bonus, r: o.bonus ? rBonus : rSem, venda: v, custo: o.custo, lucro, roi: o.custo ? lucro / o.custo : 0, paradas: o.paradas, fee, usaFoco });
-            }
+      for (const x of custosDoItem(it.id, fam, filtro, { cidades, taxaNut, foco })) {
+        for (const v of vendas) {
+          for (const o of opcoesDeCraft(x, cidadeDe(v.cid), bonusCids, maxCidades)) {
+            const lucro = v.p * (1 - v.taxa) - o.custo;
+            rotas.push({ rt: x.rt, compra: x.compra, cidCraft: o.cidCraft, bonus: o.bonus, r: o.r, venda: v, custo: o.custo, lucro, roi: o.custo ? lucro / o.custo : 0, paradas: o.paradas, fee: x.fee, usaFoco: x.usaFoco });
           }
         }
       }
@@ -2364,6 +2597,26 @@
     }
     reco.contagem = contagem;
   }
+  const nomeTier = (id) => { const i = infoItem(id); return `${escapar(i.nome)} <span class="tier">${rotuloTier(i.tier, i.ench)}</span>`; };
+  const lugarVenda = (v) => (v.cid === BM ? 'no Black Market' : `em ${escapar(v.cid)}`);
+  // Nome curto do que não volta no retorno.
+  const nomeFixo = (id) => { const i = infoItem(id); if (i.tipo === 'artefato') return 'artefato'; if (/_RUNE$/.test(id)) return 'runas'; if (/_SOUL$/.test(id)) return 'almas'; if (/_RELIC$/.test(id)) return 'relíquias'; if (/_SHARD/.test(id)) return 'fragmentos'; return escapar(i.nome); };
+  // Passos da rota. Sem n: por item. Com n: quantidades totais (reaproveitando o retorno no que volta). Rota sem venda
+  // é item estudado na estação.
+  const passosHtml = (l, rt, n) => {
+    const fixos = [...new Set(rt.compra.filter((x) => x.sem).map((x) => nomeFixo(x.id)))];
+    const porCid = new Map();
+    for (const x of rt.compra) { if (!porCid.has(x.cid)) porCid.set(x.cid, []); porCid.get(x.cid).push(x); }
+    const material = (x) => (n ? `<b>${fmt.format(unidadesComprar(x.q, n, x.sem ? 0 : rt.r))}</b> × ${nomeTier(x.id)} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${qtdTxt(x.q)} × ${nomeTier(x.id)} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)}`);
+    const compras = [...porCid].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em ${lugarHtml(cid)}: ${itens.map(material).join(' e ')}</li>`).join('');
+    const encantar = rt.rt.chave !== 'direto';
+    const crafte = `<li><span class="passo refino">Crafte</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}${encantar ? `${nomeTier(rt.rt.craftId)} ` : ''}em ${lugarHtml(rt.cidCraft)} ${rt.bonus ? 'com bônus da cidade' : 'sem bônus'}${rt.usaFoco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam${fixos.length ? ` (${fixos.join(', ')} não)` : ''}</li>`;
+    const encante = encantar ? `<li><span class="passo encante">Encante</span> até <span class="tier">${rotuloTier(l.it.tier, l.it.ench)}</span> com ${rt.rt.upgrade.map(([m, q]) => `${q} × ${escapar(infoItem(m).nome)}`).join(' + ')} por item</li>` : '';
+    const v = rt.venda;
+    if (!v) return `<ol class="passos-rota">${compras}${crafte}<li><span class="passo encante">Estude</span> ${n ? `os <b>${fmt.format(n)}</b> ` : ''}na mesma estação: o item é destruído e rende ${String(NIVEL_REGRAS.estudo).replace('.', ',')} vezes a fama do craft</li></ol>`;
+    const vendaTxt = v.cid === BM ? `no <b>Black Market</b> (Caerleon) na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'nahora' ? `em ${lugarHtml(v.cid)} na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'ordem' ? `em ${lugarHtml(v.cid)} com ordem de venda a <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : `em ${lugarHtml(v.cid)} com ordem de venda pela média de 7 dias, <b>${fmt.format(v.p)}</b> (não há ordem atual que preste)`;
+    return `<ol class="passos-rota">${compras}${crafte}${encante}<li><span class="passo venda">Venda</span> ${n ? `os <b>${fmt.format(n)}</b> ` : ''}${vendaTxt}</li></ol>`;
+  };
   function renderReco() {
     const chave = { custo: (l) => l.custo, venda: (l) => l.melhor.venda.p, porDia: (l) => l.porDia, lucro: (l) => l.lucro, roi: (l) => l.roi, lucroTotal: (l) => l.lucroTotal }[reco.ordem];
     const linhas = reco.linhas.slice().sort((a, b) => (reco.direcao === 'desc' ? chave(b) - chave(a) : chave(a) - chave(b)));
@@ -2372,24 +2625,6 @@
     const foco = rc('Foco').value === 'sim', diasSel = Number(rc('Dias').value) || 0, prata = num(rc('Prata')) || 0;
     const limiteTxt = (l) => (l.limite === 'prata' ? 'limitado pela sua prata' : l.limite === 'foco' ? `limitado pelo foco (${fmt.format(Math.round(l.focoUnit))} por item${l.focoSalvo ? ', o seu' : ', sem especialização'})` : `limitado ao que vende em ${diasSel} dia(s)`);
     const semUnidadeTxt = (l) => (l.limite === 'foco' ? 'o foco não dá pra 1 item' : l.limite === 'mercado' ? 'o mercado não vende 1 no prazo' : 'a prata não dá pra 1 item');
-    const nomeTier = (id) => { const i = infoItem(id); return `${escapar(i.nome)} <span class="tier">${rotuloTier(i.tier, i.ench)}</span>`; };
-    const lugarVenda = (v) => (v.cid === BM ? 'no Black Market' : `em ${escapar(v.cid)}`);
-    // Nome curto do que não volta no retorno.
-    const nomeFixo = (id) => { const i = infoItem(id); if (i.tipo === 'artefato') return 'artefato'; if (/_RUNE$/.test(id)) return 'runas'; if (/_SOUL$/.test(id)) return 'almas'; if (/_RELIC$/.test(id)) return 'relíquias'; if (/_SHARD/.test(id)) return 'fragmentos'; return escapar(i.nome); };
-    // Passos da rota. Sem n: por item. Com n: quantidades totais (reaproveitando o retorno no que volta).
-    const passosHtml = (l, rt, n) => {
-      const fixos = [...new Set(rt.compra.filter((x) => x.sem).map((x) => nomeFixo(x.id)))];
-      const porCid = new Map();
-      for (const x of rt.compra) { if (!porCid.has(x.cid)) porCid.set(x.cid, []); porCid.get(x.cid).push(x); }
-      const material = (x) => (n ? `<b>${fmt.format(unidadesComprar(x.q, n, x.sem ? 0 : rt.r))}</b> × ${nomeTier(x.id)} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${qtdTxt(x.q)} × ${nomeTier(x.id)} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)}`);
-      const compras = [...porCid].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em ${lugarHtml(cid)}: ${itens.map(material).join(' e ')}</li>`).join('');
-      const encantar = rt.rt.chave !== 'direto';
-      const crafte = `<li><span class="passo refino">Crafte</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}${encantar ? `${nomeTier(rt.rt.craftId)} ` : ''}em ${lugarHtml(rt.cidCraft)} ${rt.bonus ? 'com bônus da cidade' : 'sem bônus'}${rt.usaFoco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam${fixos.length ? ` (${fixos.join(', ')} não)` : ''}</li>`;
-      const encante = encantar ? `<li><span class="passo encante">Encante</span> até <span class="tier">${rotuloTier(l.it.tier, l.it.ench)}</span> com ${rt.rt.upgrade.map(([m, q]) => `${q} × ${escapar(infoItem(m).nome)}`).join(' + ')} por item</li>` : '';
-      const v = rt.venda;
-      const vendaTxt = v.cid === BM ? `no <b>Black Market</b> (Caerleon) na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'nahora' ? `em ${lugarHtml(v.cid)} na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'ordem' ? `em ${lugarHtml(v.cid)} com ordem de venda a <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : `em ${lugarHtml(v.cid)} com ordem de venda pela média de 7 dias, <b>${fmt.format(v.p)}</b> (não há ordem atual que preste)`;
-      return `<ol class="passos-rota">${compras}${crafte}${encante}<li><span class="passo venda">Venda</span> ${n ? `os <b>${fmt.format(n)}</b> ` : ''}${vendaTxt}</li></ol>`;
-    };
     const contaCusto = (rt) => {
       const volta = rt.compra.filter((x) => !x.sem), fixo = rt.compra.filter((x) => x.sem);
       const matV = volta.reduce((a, x) => a + x.p * x.q, 0), matF = fixo.reduce((a, x) => a + x.p * x.q, 0);
@@ -2646,12 +2881,246 @@
     }
     rf('Resultado').hidden = false;
   }
+  // ==== Subir nível de craft: quanto custa ir do nível de hoje até liberar um tier ====
+  // Níveis, ramos (nós de maestria) e fator do item de artefato vêm do dump (receitas.js, campo p). Regras:
+  // fama do craft = recursos refinados da receita × fama do tier × 2^encantamento × fator do item de artefato. A fama
+  // por tier é a soma da fama dos brutos da cadeia de refino no resources.json do dump e bate com as tabelas públicas
+  // (arma de 2 mãos T4 = 32 × 22,5 = 720; dobra a cada encantamento). Premium: +50% de fama (wiki). Estudar destrói o
+  // item e rende 2,75 vezes a fama do craft (StudyFame no gamedata.json; o jogo diz "pelo menos" e cobra taxa de uso).
+  const NIVEL_REGRAS = { famaTier: { 2: 1.5, 3: 7.5, 4: 22.5, 5: 90, 6: 270, 7: 645, 8: 1395 }, premium: 1.5, estudo: 2.75, focoDia: 10000 };
+  const nivel = { pronto: false, dados: null, plano: null };
+  const nv = (id) => $('nivel' + id);
+  const nivelStatus = (msg, erro = false) => { nv('Status').textContent = msg; nv('Status').classList.toggle('erro', erro); };
+  const nivelAtual = () => Math.min(99, Math.max(0, Math.round(num(nv('Atual')) ?? 0)));
+  // Fama de um craft, sem premium.
+  const famaDoCraft = (id) => {
+    const R = window.ALBION_RECEITAS, info = infoItem(id);
+    const recursos = (R.r[id] || []).reduce((a, [m, q]) => a + (infoItem(m).tipo === 'refinado' ? q : 0), 0);
+    return recursos * (NIVEL_REGRAS.famaTier[info.tier] || 0) * 2 ** info.ench * (R.p.af[familiaDe(id).replace(/^T\d_/, '')] || 1);
+  };
+  // Itens craftáveis que contam fama pro ramo: os padrões do dump usam ? (um caractere) e * (qualquer resto).
+  const itensDoNo = (no) => {
+    const R = window.ALBION_RECEITAS;
+    const padroes = no[4].map((p) => new RegExp('^' + p.replace(/\?/g, '.').replace(/\*/g, '.*') + '$'));
+    return [...catalogo.values(), ...extrasDoCraft()].filter((i) => R.r[i.id] && padroes.some((re) => re.test(familiaDe(i.id))));
+  };
+  // Etapas entre o nível de hoje e o alvo, cortadas em cada nível que libera um tier: em cada uma só dá pra craftar
+  // até o tier já liberado (T3 antes do nível 1) e só conta fama o item do tier mínimo do dump pra cima.
+  function etapasDoNivel(no, atual, alvo) {
+    const P = window.ALBION_RECEITAS.p;
+    const cortes = Object.values(P.t).filter((n) => n > atual && n < alvo).sort((a, b) => a - b);
+    const limites = [atual, ...cortes, alvo];
+    return limites.slice(0, -1).map((de, i) => {
+      const ate = limites[i + 1];
+      const libera = Object.entries(P.t).find(([, n]) => n === ate);
+      return {
+        de, ate, libera: libera ? Number(libera[0]) : null,
+        fama: P.n.slice(de, ate).reduce((a, x) => a + x, 0) * no[3],
+        tierMin: Math.max(...P.mi.slice(de, ate)),
+        tierMax: Math.max(3, ...Object.entries(P.t).filter(([, n]) => n <= de).map(([t]) => Number(t))),
+      };
+    });
+  }
+  function iniciarNivel() {
+    if (nivel.pronto || !window.ALBION_RECEITAS) return;
+    nivel.pronto = true;
+    const P = window.ALBION_RECEITAS.p;
+    // Rótulo do ramo: o nome do Quadro do Destino e os itens T4 que ele cobre, sem o "do Adepto".
+    const semTier = (nome) => nome.replace(/ (d[oa] )?Adept[oa]$/, '');
+    const grupos = new Map();
+    for (const no of P.nos) {
+      const t4 = itensDoNo(no).filter((i) => i.tier === 4 && i.ench === 0);
+      if (!t4.length) continue; // ramo sem item craftável nesta página
+      const exemplos = [...new Set(t4.map((i) => semTier(i.nome)))];
+      if (!grupos.has(no[2])) grupos.set(no[2], []);
+      grupos.get(no[2]).push({ id: no[0], rotulo: `${no[1]}: ${exemplos.slice(0, 3).join(', ')}${exemplos.length > 3 ? '…' : ''}` });
+    }
+    nv('No').innerHTML = [...grupos].map(([g, nos]) => `<optgroup label="${escapar(g)}">${nos.sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR')).map((n) => `<option value="${n.id}">${escapar(n.rotulo)}</option>`).join('')}</optgroup>`).join('');
+    nv('Alvo').innerHTML = Object.entries(P.t).map(([t, n]) => `<option value="${n}">T${t} (nível ${n})</option>`).join('');
+    nv('Premium').value = el.premium.value;
+    // Tier já liberado no nível de hoje não é alvo.
+    const ajustarAlvo = () => {
+      const atual = nivelAtual();
+      for (const o of nv('Alvo').options) o.disabled = Number(o.value) <= atual;
+      if (nv('Alvo').selectedOptions[0].disabled) nv('Alvo').value = [...nv('Alvo').options].find((o) => !o.disabled).value;
+    };
+    ajustarAlvo();
+    const recalc = () => { if (nivel.dados) { calcularNivel(); renderNivel(); } };
+    const mudouAlvo = () => { ajustarAlvo(); if (nivel.dados) nivelStatus('O ramo ou o nível mudou: clique em Calcular quanto custa subir de novo.'); };
+    nv('Buscar').addEventListener('click', buscarNivel);
+    nv('Atual').addEventListener('input', mudouAlvo);
+    for (const id of ['No', 'Alvo']) nv(id).addEventListener('change', mudouAlvo);
+    for (const id of ['MinDia', 'Taxa']) nv(id).addEventListener('input', recalc);
+    for (const id of ['Premium', 'Foco', 'Cidades', 'Idade', 'Dias', 'Rests']) nv(id).addEventListener('change', recalc);
+  }
+  async function buscarNivel() {
+    const no = window.ALBION_RECEITAS.p.nos.find((x) => x[0] === nv('No').value);
+    const atual = nivelAtual(), alvo = Number(nv('Alvo').value);
+    if (!no || !(alvo > atual)) { nivelStatus('Esse tier já está liberado no seu nível.', true); return; }
+    const etapas = etapasDoNivel(no, atual, alvo);
+    const tMin = Math.min(...etapas.map((e) => e.tierMin)), tMax = Math.max(...etapas.map((e) => e.tierMax));
+    const itens = itensDoNo(no).filter((i) => i.tier >= tMin && i.tier <= tMax);
+    if (!itens.length) { nivelStatus('Esse ramo não tem item craftável nos tiers dessa subida.', true); return; }
+    nv('Buscar').disabled = true; nv('Barra').hidden = false; nv('Barra').firstElementChild.style.width = '0%';
+    try {
+      const { dados, falhas } = await buscarDadosRotas(itens, (feitos, total, nMats) => {
+        nv('Barra').firstElementChild.style.width = `${Math.round((feitos / total) * 100)}%`;
+        nivelStatus(`Buscando ${fmt.format(itens.length)} itens e ${fmt.format(nMats)} materiais nos mercados e no Black Market… ${feitos}/${total}`);
+      });
+      nivel.dados = { no, atual, alvo, etapas, itens, dados };
+      calcularNivel(); renderNivel();
+      nivelStatus(`${no[1]}, do nível ${atual} ao ${alvo}: ${fmt.format(itens.length)} itens testados${falhas ? ` · ${falhas} lotes falharam (limite da API?); tente de novo em 1 min` : ''} · buscado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, falhas > 0);
+    } catch (err) {
+      nivelStatus(`Não deu pra buscar: ${err.message}. Tente de novo em 1 minuto.`, true);
+    } finally { nv('Buscar').disabled = false; nv('Barra').hidden = true; }
+  }
+  function calcularNivel() {
+    const R = window.ALBION_RECEITAS, { etapas, itens, dados } = nivel.dados;
+    const premium = nv('Premium').value === 'premium', foco = nv('Foco').value === 'sim';
+    const taxaNut = num(nv('Taxa')) || 0, taxaBase = premium ? 0.04 : 0.08;
+    const maxCidades = Number(nv('Cidades').value) || 3, minDia = num(nv('MinDia')) ?? 0, diasMax = Number(nv('Dias').value) || 0;
+    const idadeMax = (Number(nv('Idade').value) || 24) * 3600000, comRests = nv('Rests').checked;
+    const cidades = mercadosAtivos(comRests), locais = [...cidades, BM];
+    const contagem = { semFama: 0, semMat: 0, semVenda: 0, velhos: 0, absurdos: 0 };
+    const filtro = filtroDePrecos(dados, cidades, idadeMax, contagem);
+    const melhorQue = (novo, atual, chave) => !atual || novo[chave] < atual[chave] - 1e-9 || (Math.abs(novo[chave] - atual[chave]) <= 1e-9 && novo.paradas < atual.paradas);
+    // Candidatos: cada item do ramo com a rota mais barata pra estudar e, pra vender, a melhor rota de cada lugar de
+    // venda (o volume de um lugar só não costuma dar conta). Só craft direto: encantar depois não dá fama de craft.
+    const cands = [];
+    for (const it of itens) {
+      const fama = famaDoCraft(it.id) * (premium ? NIVEL_REGRAS.premium : 1);
+      if (!fama) { contagem.semFama++; continue; }
+      const custos = custosDoItem(it.id, craft.familiaPorId.get(it.id), filtro, { cidades, taxaNut, foco, soDireto: true });
+      if (!custos.length) { contagem.semMat++; continue; }
+      const bonusCids = bonusDeCraft(familiaDe(it.id), comRests);
+      const vendas = vendasDoItem(it.id, dados, filtro, { locais, minDia, taxaBase, contagem });
+      if (!vendas.length) contagem.semVenda++;
+      let estudo = null;
+      const porLocal = new Map();
+      for (const x of custos) {
+        const rota = (o) => ({ rt: x.rt, compra: x.compra, cidCraft: o.cidCraft, bonus: o.bonus, r: o.r, paradas: o.paradas, usaFoco: x.usaFoco });
+        // Estudar paga a taxa de uso de novo: a página conta igual à do craft (mesma nutrição).
+        for (const o of opcoesDeCraft(x, null, bonusCids, maxCidades)) { const y = { ...rota(o), venda: null, fee: x.fee * 2, liquido: o.custo + x.fee }; if (melhorQue(y, estudo, 'liquido')) estudo = y; }
+        for (const v of vendas) for (const o of opcoesDeCraft(x, cidadeDe(v.cid), bonusCids, maxCidades)) { const y = { ...rota(o), venda: v, fee: x.fee, liquido: o.custo - v.p * (1 - v.taxa) }; if (melhorQue(y, porLocal.get(v.cid), 'liquido')) porLocal.set(v.cid, y); }
+      }
+      cands.push({ it, fama, focoUnit: R.f[it.id] || 0, estudo, vendas: [...porLocal.values()] });
+    }
+    // O que se compra pra n crafts em sequência (o retorno volta pro craft seguinte), mais as taxas.
+    const gastoDe = (rt, n) => rt.compra.reduce((a, x) => a + unidadesComprar(x.q, n, x.sem ? 0 : rt.r) * x.p, 0) + rt.fee * n;
+    const famaPorItem = (c, estuda) => c.fama * (estuda ? 1 + NIVEL_REGRAS.estudo : 1);
+    const opcoesDe = { estudo: cands.filter((c) => c.estudo).map((c) => ({ c, rt: c.estudo })), venda: cands.flatMap((c) => c.vendas.map((rt) => ({ c, rt }))) };
+    // Uma etapa feita de um jeito só (vendendo ou estudando), a partir da fama que sobrou da etapa anterior e do que
+    // cada lugar de venda ainda absorve no prazo. Vai do item que dá mais fama por prata pro que dá menos.
+    const fazerEtapa = (e, modo, sobra, cabe) => {
+      const estuda = modo === 'estudo';
+      const r = { modo, linhas: [], gasta: 0, recebe: 0, falta: 0, sobra: 0, cabe: new Map(cabe) };
+      let precisa = Math.max(0, e.fama - sobra);
+      const ordem = opcoesDe[modo].filter(({ c }) => c.it.tier >= e.tierMin && c.it.tier <= e.tierMax).sort((x, y) => x.rt.liquido / famaPorItem(x.c, estuda) - y.rt.liquido / famaPorItem(y.c, estuda));
+      for (const { c, rt } of ordem) {
+        if (precisa <= 1e-9) break;
+        const v = rt.venda, chave = v ? `${c.it.id}|${v.cid}` : null;
+        const resto = !v ? Infinity : r.cabe.has(chave) ? r.cabe.get(chave) : (diasMax ? Math.floor(v.h7.porDia * diasMax) : Infinity);
+        if (resto < 1) continue;
+        const n = Math.min(resto, Math.ceil(precisa / famaPorItem(c, estuda) - 1e-9));
+        precisa -= n * famaPorItem(c, estuda);
+        if (v) r.cabe.set(chave, resto - n);
+        const gasta = gastoDe(rt, n), recebe = v ? n * v.p * (1 - v.taxa) : 0;
+        r.linhas.push({ etapa: e, c, rt, n, famaItem: famaPorItem(c, estuda), gasta, recebe });
+        r.gasta += gasta; r.recebe += recebe;
+      }
+      if (precisa > 1e-9) { r.falta = precisa; r.linhas.push({ etapa: e, falta: precisa, estuda }); } else r.sobra = -precisa;
+      return r;
+    };
+    // Plano inteiro. Com mais de um jeito permitido, cada etapa fica com o que fecha gastando menos; se nenhum fecha,
+    // com o que cobre mais fama.
+    const montar = (modos) => {
+      const plano = { modos: [], linhas: [], gasta: 0, recebe: 0, itens: 0, foco: 0, falta: 0, dias: 0 };
+      let sobra = 0, cabe = new Map();
+      for (const e of etapas) {
+        const r = modos.map((m) => fazerEtapa(e, m, sobra, cabe)).sort((x, y) => (x.falta - y.falta) || ((x.gasta - x.recebe) - (y.gasta - y.recebe)))[0];
+        sobra = r.sobra; cabe = r.cabe;
+        plano.modos.push(r.modo); plano.linhas.push(...r.linhas);
+        plano.gasta += r.gasta; plano.recebe += r.recebe; plano.falta += r.falta;
+      }
+      const diasDe = new Map(); // por item e lugar de venda: em quantos dias vende o que o plano pôs lá
+      for (const l of plano.linhas) {
+        if (l.falta) continue;
+        plano.itens += l.n;
+        if (l.rt.usaFoco) plano.foco += l.n * l.c.focoUnit;
+        if (l.rt.venda) { const k = `${l.c.it.id}|${l.rt.venda.cid}`; diasDe.set(k, (diasDe.get(k) || 0) + l.n / l.rt.venda.h7.porDia); }
+      }
+      plano.dias = Math.max(0, ...[...diasDe.values()].map((d) => d - 1e-9)); // 68 itens a 9,714 por dia são 7 dias, não 7,0000001
+      plano.custo = plano.gasta - plano.recebe;
+      return plano;
+    };
+    nivel.plano = { venda: montar(['venda']), estudo: montar(['estudo']), misto: montar(['venda', 'estudo']), contagem, premium, foco, diasMax };
+  }
+  function renderNivel() {
+    const P = window.ALBION_RECEITAS.p, { no, atual, alvo, etapas, itens } = nivel.dados, pl = nivel.plano;
+    const sinal = (x) => (x >= 0 ? '+' : '') + fmt.format(Math.round(x));
+    const n0 = (x) => fmt.format(Math.round(x));
+    const famaTotal = etapas.reduce((a, e) => a + e.fama, 0);
+    const tierAlvo = (Object.entries(P.t).find(([, n]) => n === alvo) || [])[0];
+    const custoTxt = (p) => (p.custo >= 0 ? `gasta <b class="c-custo">${n0(p.custo)}</b>` : `lucra <b class="c-lucro">${n0(-p.custo)}</b>`);
+    const cobre = (p) => Math.floor((1 - p.falta / famaTotal) * 100);
+    const v = pl.venda, e = pl.estudo, m = pl.misto;
+    // O plano misturado só conta quando mistura de fato: alguma etapa vendendo e outra estudando.
+    const mistura = new Set(m.modos).size > 1;
+    const melhorPuro = [v, e].filter((p) => !p.falta).sort((x, y) => x.custo - y.custo)[0] || null;
+    // Misturar só ganha de uma forma pura se economizar mais de 1% do que ela gasta: abaixo disso é empate, e a pura é mais simples.
+    const melhor = mistura && !m.falta && (!melhorPuro || melhorPuro.custo - m.custo > melhorPuro.gasta * 0.01) ? m : melhorPuro;
+    const mistoTxt = etapas.map((x, i) => `do nível ${x.de} ao ${x.ate}, ${m.modos[i] === 'venda' ? 'vender o que crafta' : 'estudar'}`).join('; ');
+    const puroTxt = (p, nome) => (p.falta ? `${nome} não fecha com os dados de agora (cobre ${cobre(p)}% da fama)` : `${nome} você ${custoTxt(p)} de prata e crafta ${n0(p.itens)} itens`);
+    // Veredito: a forma mais barata que fecha, e quanto sai cada uma das duas.
+    let veredito;
+    if (!melhor) veredito = 'Nenhuma forma fecha com os dados de agora: falta preço de material dentro da idade escolhida. Aumente a idade máxima do preço ou colete os preços no jogo com o Albion Data Client.';
+    else if (melhor === m) veredito = `<strong>O mais barato é misturar:</strong> ${mistoTxt}. Assim você ${custoTxt(m)} de prata e crafta ${n0(m.itens)} itens. ${puroTxt(v, 'Só vendendo,')}. ${puroTxt(e, 'Só estudando,')}.`;
+    else veredito = `<strong>${melhor === v ? 'Vender' : 'Estudar'} sai mais barato.</strong> ${puroTxt(v, 'Vendendo os itens,')}. ${puroTxt(e, 'Estudando,')}.`;
+    if (pl.foco && melhor) veredito += ` Com foco em todos os crafts, o plano mais barato pede ${n0(melhor.foco)} de foco: ${n0(Math.ceil(melhor.foco / NIVEL_REGRAS.focoDia))} dia(s) juntando 10 mil por dia.`;
+    const cartao = (titulo, p) => `<div class="cartao${p === melhor ? ' destaque' : ''}"><span>${titulo}</span><b class="${p.custo >= 0 ? 'c-custo' : 'c-lucro'}">${p.falta ? 'não fecha' : (p.custo >= 0 ? '' : '+') + n0(Math.abs(p.custo))}</b><span>${p.falta ? `cobre ${cobre(p)}% da fama` : `${p.custo >= 0 ? 'custo final' : 'lucro'} · ${extenso(Math.abs(p.custo))}`} · ${n0(p.itens)} itens · gasta ${n0(p.gasta)}${p.recebe ? ` e recebe ${n0(p.recebe)}` : ' e nada volta'}${p.dias ? ` · vende tudo em ~${n0(Math.ceil(p.dias))} dia(s)` : ''}${pl.foco ? ` · ${n0(p.foco)} de foco` : ''}</span></div>`;
+    const icone = (itens.find((i) => i.tier === 4 && i.ench === 0) || itens[0]).id;
+    nv('Titulo').textContent = `Quanto custa liberar o T${tierAlvo}`;
+    nv('Veredito').innerHTML = `<div class="ref-destaque-cab"><img class="craft-icone" src="${iconeUrl(icone)}" alt="" onerror="this.style.visibility='hidden'"><div><div class="titulo">${escapar(no[1])} · do nível ${atual} ao ${alvo}</div><div class="nome">Liberar o T${tierAlvo} pede ${n0(famaTotal)} de fama</div></div></div><p class="ref-conta">${veredito}</p><div class="craft-cartoes">${cartao('Craftar e vender', v)}${cartao('Craftar e estudar', e)}${melhor === m ? cartao('Misturar: o melhor de cada etapa', m) : ''}</div>${atual === 0 && no[5] ? `<p class="craft-retorno">Antes do nível 1 o jogo pede o nó anterior, ${escapar(no[5][0])} (${n0(no[5][1])} de fama com itens T2), que libera o craft do T3.</p>` : ''}`;
+    const etapaHtml = (x) => `<div class="nome">Nível ${x.de} → ${x.ate}</div><div class="meta">${x.libera ? `libera o T${x.libera} · ` : ''}${n0(x.fama)} de fama · crafta ${x.tierMin === x.tierMax ? `T${x.tierMax}` : `T${x.tierMin} a T${x.tierMax}`}</div>`;
+    const tabela = (p) => {
+      const temVenda = p.linhas.some((l) => l.rt && l.rt.venda);
+      let ultima = null;
+      const corpo = p.linhas.map((l) => {
+        const primeira = l.etapa !== ultima; ultima = l.etapa;
+        const etapa = `<td>${primeira ? etapaHtml(l.etapa) : ''}</td>`;
+        if (l.falta) return `<tr>${etapa}<td colspan="${temVenda ? 6 : 5}"><span class="c-custo">Faltam ${n0(l.falta)} de fama.</span> ${l.estuda ? 'Nenhum item que você pode craftar nessa etapa tem preço de material dentro da idade escolhida.' : `Os outros itens que você pode craftar nessa etapa não têm venda registrada na API nos últimos 7 dias${pl.diasMax ? `, ou já estão no limite do que se vende em ${pl.diasMax} dias` : ''}. Pra registrar, abra o histórico do item no mercado do jogo com o Albion Data Client ligado.`}</td></tr>`;
+        const rt = l.rt, vd = rt.venda, custo = l.gasta - l.recebe;
+        return `<tr>${etapa}
+          <td><div class="item"><img class="craft-icone" src="${iconeUrl(l.c.it.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><div><div class="nome">${fmt.format(l.n)} × ${escapar(l.c.it.nome)} <span class="tier">${rotuloTier(l.c.it.tier, l.c.it.ench)}</span></div></div></div>${passosHtml(l.c, rt, l.n)}</td>
+          <td class="num">${n0(l.famaItem)}<span class="conta">${vd ? `no craft${pl.premium ? ', já com +50% do premium' : ''}` : `craft ${n0(l.c.fama)} + estudo ${n0(l.c.fama * NIVEL_REGRAS.estudo)}`}</span><span class="conta">× ${fmt.format(l.n)} = ${n0(l.famaItem * l.n)}</span></td>
+          <td class="num c-custo">${n0(l.gasta)}<span class="conta">${extenso(l.gasta)} em compras e taxas</span><span class="conta">≈ ${n0(l.gasta / l.n)} por item, com o retorno</span></td>
+          ${temVenda ? (vd ? `<td class="num c-bm">${n0(l.recebe)}<span class="conta">${fmt.format(vd.p)} − ${pctTxt(vd.taxa)} = ${n0(vd.p * (1 - vd.taxa))} por item</span><span class="conta">${porDiaTxt(vd.h7.porDia)} vendidos por dia ${lugarVenda(vd)}: ~${n0(Math.max(1, Math.ceil(l.n / vd.h7.porDia - 1e-9)))} dia(s)</span></td>` : '<td class="num">—<span class="conta">o item é destruído no estudo</span></td>') : ''}
+          <td class="num ${custo >= 0 ? 'c-custo' : 'c-lucro'}">${custo >= 0 ? n0(custo) : sinal(-custo)}<span class="conta">${vd ? `${n0(l.gasta)} − ${n0(l.recebe)}` : 'o item é destruído'}</span></td>
+          <td class="num">${n0(custo / (l.famaItem * l.n) * 1000)}<span class="conta">de prata por 1.000 de fama</span></td>
+        </tr>`;
+      }).join('');
+      return `<div class="tabela-wrap"><table class="craft-tabela refino-tabela nivel-tabela"><thead><tr><th>Etapa</th><th>O que fazer</th><th class="num">Fama por item</th><th class="num">Gasta</th>${temVenda ? '<th class="num">Recebe na venda</th>' : ''}<th class="num">Custo</th><th class="num">Prata por fama</th></tr></thead><tbody>${corpo}</tbody></table></div>`;
+    };
+    const resumoPlano = (p) => (p.falta ? `Cobre ${cobre(p)}% da fama.` : `${n0(p.itens)} itens, gasta ${n0(p.gasta)}${p.recebe ? `, recebe ${n0(p.recebe)}` : ''}: ${p.custo >= 0 ? `custo final de ${n0(p.custo)} (${extenso(p.custo)})` : `lucro de ${n0(-p.custo)} (${extenso(-p.custo)})`}.`);
+    const bloco = (titulo, texto, p) => `<div><h4>${titulo}</h4><p class="craft-retorno">${texto} ${resumoPlano(p)}</p>${tabela(p)}</div>`;
+    nv('Opcoes').innerHTML = (melhor === m ? bloco('Mais barato: misturar as duas formas', 'Cada etapa do jeito que fecha gastando menos: vendendo ou estudando.', m) : '')
+      + bloco('Opção 1: craftar e vender os itens', 'Você crafta, ganha a fama do craft e vende o item.', v)
+      + bloco('Opção 2: craftar e estudar os itens', `Você crafta e estuda o item na mesma estação: ele é destruído e a fama vem ${String(1 + NIVEL_REGRAS.estudo).replace('.', ',')} vezes (craft + estudo).`, e);
+    const c0 = pl.contagem;
+    nv('Resumo').textContent = `${pl.premium ? 'Com premium' : 'Sem premium'}, ${pl.foco ? 'com foco em todos os crafts' : 'sem foco'}, até ${nv('Cidades').value} cidade(s) por rota, taxa da estação ${fmt.format(num(nv('Taxa')) || 0)} por 100 de nutrição${nv('Rests').checked ? ', com os Rests' : ''}. Cada etapa usa o item que dá mais fama por prata entre os que você já pode craftar. Os passos e a conta ficam em cada linha.`;
+    nv('Como').textContent = `Fama pra subir cada nível e tier que cada nível libera: Quadro do Destino, do dump do jogo (T4 no nível 1, T5 no 10, T6 no 30, T7 no 60, T8 no 100), vezes o multiplicador do ramo (${String(no[3]).replace('.', ',')} neste). Fama de um craft = recursos refinados da receita × fama do tier (T3 7,5; T4 22,5; T5 90; T6 270; T7 645; T8 1.395) × 2 a cada encantamento × fator do item de artefato (1,1 a 1,4, do dump); com premium, +50%. Artefato, runa e outros materiais não contam fama. Antes do nível 1 só dá pra craftar T3; do nível 1 em diante só conta item T4 ou acima, até o tier já liberado. Estudar: o item é destruído e rende ${String(NIVEL_REGRAS.estudo).replace('.', ',')} vezes a fama do craft, valor do dump que o jogo anuncia como "pelo menos"; bônus diário e foco no estudo aumentam essa fama e não entram aqui. O estudo cobra taxa de uso da estação: a página conta igual à do craft (mesma nutrição); confira na estação. Rota de cada item: a mesma do "O que craftar" (cada material numa das 2 cidades mais baratas ou tudo numa só; craft na cidade com bônus da categoria quando cabe no limite de cidades; retorno de 15,3%, 24,8%, 43,5% ou 47,9%), só com craft direto, porque encantar depois não dá fama. O gasto é o que você compra pra craftar em sequência reaproveitando o retorno; a sobra do último craft fica na bag. Vender: qualidade Normal, na hora (ordem de compra), com ordem de venda (+2,5%) ou pela média de 7 dias quando não há ordem atual; cada item fica limitado ao que o lugar de venda negocia no prazo, e o que passar vai pro próximo item mais barato. A fama que sobra de uma etapa conta pra seguinte. Misturar as duas formas (cada etapa do jeito que fecha gastando menos) só aparece quando economiza mais de 1% do que a melhor forma sozinha gasta. Foco: custo do jogo sem especialização, 10 mil por dia com premium; conforme o nível sobe o foco por item cai, e a página não desconta isso. Ficou de fora: preço com mais de ${nv('Idade').options[nv('Idade').selectedIndex].text} (${fmt.format(c0.velhos)}), preço fora da realidade (${fmt.format(c0.absurdos)}), ${fmt.format(c0.semMat)} itens sem preço de algum material, ${fmt.format(c0.semVenda)} sem lugar de venda com pelo menos ${fmt.format(num(nv('MinDia')) ?? 0)} vendas por dia${c0.semFama ? `, ${fmt.format(c0.semFama)} sem recurso refinado na receita` : ''}.`;
+    nv('Resultado').hidden = false;
+  }
+
   function abrirNaCalculadora(id) {
     const f = craft.familias.find((x) => Object.values(x.variantes).includes(id));
     if (!f) return;
+    // Troca o item aberto da lista pelo que foi clicado; os outros itens da lista ficam.
     craft.familia = f;
     craft.ench = Number(Object.keys(f.variantes).find((e) => f.variantes[e] === id));
+    craft.rota = 'auto';
     craft.cidadeDe.clear(); craft.manual.clear(); craft.modo.clear(); craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null;
+    Object.assign(itemAberto(), { precos: null, hist: null, res: null, refino: new Map() });
     c('Busca').value = f.nome;
     document.querySelector('[data-craftmodo="calc"]').click();
     mostrarItem();
