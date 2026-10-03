@@ -19,6 +19,16 @@ const BONUS_CRAFT = {
   'Thetford': ['mace', 'naturestaff', 'firestaff', 'leather_armor', 'cloth_helmet'],
   'Caerleon': ['knuckles', 'shapeshifterstaff'],
 };
+// Rests (zona negra), mesma página da wiki: craft +15% nessas subcategorias.
+const BONUS_CRAFT_REST = {
+  "Arthur's Rest": ['axe', 'crossbow', 'hammer', 'mace', 'sword', 'knuckles', 'plate_helmet', 'plate_armor', 'plate_shoes'],
+  "Merlyn's Rest": ['bow', 'dagger', 'quarterstaff', 'spear', 'naturestaff', 'shapeshifterstaff', 'leather_helmet', 'leather_armor', 'leather_shoes'],
+  "Morgana's Rest": ['arcanestaff', 'cursestaff', 'firestaff', 'froststaff', 'holystaff', 'cloth_helmet', 'cloth_armor', 'cloth_shoes'],
+};
+function restBonusCraft(it) {
+  for (const [rest, subs] of Object.entries(BONUS_CRAFT_REST)) if (subs.includes(it['@shopsubcategory1'])) return rest;
+  return null;
+}
 function cidadeBonusCraft(it) {
   const cat = it['@shopcategory'], sub = it['@shopsubcategory1'], id = it['@uniquename'];
   if (cat === 'offhands') return 'Martlock';
@@ -73,7 +83,7 @@ function escolherReceita(cr) {
       up = e ? lista(e.upgraderequirements?.upgraderesource).map((r) => [idApi(r['@uniquename']), Number(r['@count'])]) : [];
     }
     if (!rec) { semReceita++; continue; }
-    receitas[id] = { n: nome, t: tier, e: ench, k: 'equip', rec, up, bonus: cidadeBonusCraft(it) };
+    receitas[id] = { n: nome, t: tier, e: ench, k: 'equip', rec, up, bonus: cidadeBonusCraft(it), rest: restBonusCraft(it) };
     for (const [m] of rec.mats) materiaisUsados.add(m);
     for (const [m] of up) materiaisUsados.add(m);
   }
@@ -111,11 +121,13 @@ function escolherReceita(cr) {
   // equipamentos e recursos refinados; u = encantar { id@n: [[runa/alma/relíquia, quantidade]] } do nível n-1 pro n.
   // f = custo de foco { id: foco com 0 de especialização } de equipamentos e refinados (valor do equipamento = soma dos materiais).
   // b = cidade com bônus de craft { id base do equipamento: cidade }.
-  const saida = { m: {}, r: {}, u: {}, f: {}, b: {} };
+  // rb = Rest com bônus de craft { id base: Rest }.
+  const saida = { m: {}, r: {}, u: {}, f: {}, b: {}, rb: {} };
   for (const [id, x] of Object.entries(receitas)) {
     if (x.k !== 'equip') saida.m[id] = [x.n, x.t, x.e, x.k, x.peso, x.valor];
     if (x.rec && x.rec.foco) saida.f[id] = x.rec.foco;
     if (x.bonus) saida.b[id.replace(/@\d$/, '')] = x.bonus;
+    if (x.rest) saida.rb[id.replace(/@\d$/, '')] = x.rest;
     // [material, quantidade] ou [material, quantidade, 0] quando o material não volta no retorno (maxreturnamount 0 no dump).
     if (x.rec) saida.r[id] = x.rec.mats.map(([m, q, ret]) => (ret ? [m, q] : [m, q, 0]));
     if (x.up && x.up.length) saida.u[id] = x.up;

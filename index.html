@@ -275,6 +275,7 @@
   .passo.compra { background: rgba(255, 107, 107, .16); color: var(--c-custo); }
   .passo.refino { background: var(--accent-soft); color: var(--accent-2); }
   .passo.venda { background: rgba(247, 208, 70, .16); color: var(--c-bm); }
+  .zona-negra { display: inline-block; padding: 0 6px; border-radius: var(--r-chip); background: rgba(255, 107, 107, .16); color: var(--c-custo); font-size: 10.5px; font-weight: 650; }
   .passo.encante { background: var(--c-est-soft); color: var(--c-est); }
   .refino-tabela td .conta { display: block; margin-top: 2px; font-family: var(--font); font-size: 11px; font-weight: 400; color: var(--vib-3); white-space: normal; max-width: 190px; margin-left: auto; }
   .refino-tabela td .conta.c-lucro { color: var(--c-lucro); }
@@ -746,6 +747,7 @@
       <div class="campo"><label for="recoTaxa">Taxa da estação <span class="ajuda">por 100 de nutrição</span></label><input id="recoTaxa" type="number" min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. A página converte por item: nutrição = 11,25% do valor do item, que é a soma do valor dos materiais."></div>
       <div class="campo"><label for="recoPremium">Taxa de venda</label><select id="recoPremium"><option value="premium" selected>Premium (4%)</option><option value="normal">Sem premium (8%)</option></select></div>
       <div class="campo"><span class="grupo-label">Especialização</span><label class="craft-check"><input type="checkbox" class="caixa" id="recoSoSpec"> só os que eu tenho</label></div>
+      <div class="campo"><span class="grupo-label">Rests (zona negra)</span><label class="craft-check" title="Arthur's, Merlyn's e Morgana's Rest: comprar, craftar e vender lá. Rota passa pela zona negra (perde tudo se morrer)."><input type="checkbox" class="caixa" id="recoRests" checked> incluir nas rotas</label></div>
     </div>
     <div class="acoes">
       <button type="button" class="primario" id="recoBuscar">Descobrir o que craftar</button>
@@ -789,6 +791,7 @@
       <div class="campo"><label for="refDias">Vender tudo em até</label><select id="refDias" title="Limita a quantidade ao que a cidade de venda negocia nesse prazo (vendas por dia dos últimos 7 dias)"><option value="1">1 dia</option><option value="3" selected>3 dias</option><option value="7">7 dias</option><option value="0">Sem limite</option></select></div>
       <div class="campo"><span class="grupo-label">Bônus diário de hoje <span class="ajuda">menu Atividades</span></span><div class="multi" id="refDiario"></div></div>
       <div class="campo"><label for="refTaxa">Taxa da estação <span class="ajuda">por 100 de nutrição</span></label><input id="refTaxa" type="number" min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. A página converte por item: cada unidade consome 11,25% do valor do item (T4 1,8; T5 3,6; T6 7,2; T7 14,4; T8 28,8; dobra a cada encantamento)"></div>
+      <div class="campo"><span class="grupo-label">Rests (zona negra)</span><label class="craft-check" title="Arthur's, Merlyn's e Morgana's Rest: comprar, refinar e vender lá. Refino no Rest tem 15% de bônus e nenhum recurso com bônus. Rota passa pela zona negra (perde tudo se morrer)."><input type="checkbox" class="caixa" id="refRests" checked> incluir nas rotas</label></div>
       <div class="campo"><label for="refPremium">Taxa de venda</label><select id="refPremium"><option value="premium" selected>Premium (4%)</option><option value="normal">Sem premium (8%)</option></select></div>
     </div>
     <div class="acoes">
@@ -952,6 +955,18 @@
   };
   const TODAS = 'todas';
   const TODAS_CIDADES_API = Object.values(CIDADES).join(',');
+  // Rests da zona negra. A API junta todos os mercados de contrabandista numa rede: o código 4300 (Arthur's Rest) traz a
+  // rede inteira e a página fica só com os três Rests; os outros mercados da rede são descartados.
+  const RESTS = { "Arthur's Rest": 'Arthurs Rest Smugglers Network', "Merlyn's Rest": 'Merlyns Rest Smugglers Network', "Morgana's Rest": 'Morganas Rest Smugglers Network' };
+  const REDE_API = '4300';
+  const REST_DA_API = Object.fromEntries(Object.entries(RESTS).map(([nome, api]) => [api, nome]));
+  const ehRest = (nome) => Object.prototype.hasOwnProperty.call(RESTS, nome);
+  // Nome do mercado como a página usa: cidade real igual à API, Rest pelo nome curto, outro mercado da rede descartado.
+  const nomeMercado = (api) => REST_DA_API[api] || (/Smugglers Network$/.test(api) ? null : api);
+  const MERCADOS = [...Object.keys(CIDADES), ...Object.keys(RESTS)];
+  const MERCADOS_API = `${TODAS_CIDADES_API},${REDE_API}`;
+  const mercadosAtivos = (comRests) => (comRests ? MERCADOS : Object.keys(CIDADES));
+  const lugarHtml = (nome) => `<b>${escapar(nome)}</b>${ehRest(nome) ? ' <span class="zona-negra">zona negra</span>' : ''}`;
   const TIERS = [4, 5, 6, 7, 8];
   const ENCHS = [0, 1, 2, 3, 4];
   const SLOTS = ['Arma', 'Off-hand', 'Capacete', 'Armadura', 'Botas', 'Capa', 'Bolsa'];
@@ -993,6 +1008,12 @@
     const o = document.createElement('option');
     o.value = nome; o.textContent = nome;
     el.cidade.appendChild(o);
+  }
+  {
+    const grupo = document.createElement('optgroup');
+    grupo.label = 'Zona negra (Rests)';
+    for (const nome of Object.keys(RESTS)) { const o = document.createElement('option'); o.value = nome; o.textContent = nome; grupo.appendChild(o); }
+    el.cidade.appendChild(grupo);
   }
   const oTodas = document.createElement('option');
   oTodas.value = TODAS; oTodas.textContent = 'Todas as cidades';
@@ -1254,7 +1275,9 @@
         if (row.city === 'Black Market') {
           if (row.buy_price_max > 0) (e.bm ||= {})[q] = { p: row.buy_price_max, d: row.buy_price_max_date };
         } else {
-          const oferta = ((e.cid ||= {})[row.city] ||= {})[q] ||= {};
+          const cid = nomeMercado(row.city);
+          if (!cid) continue;
+          const oferta = ((e.cid ||= {})[cid] ||= {})[q] ||= {};
           if (row.sell_price_min > 0) oferta.venda = { p: row.sell_price_min, d: row.sell_price_min_date };
           if (row.buy_price_max > 0) oferta.compra = { p: row.buy_price_max, d: row.buy_price_max_date };
         }
@@ -1266,7 +1289,7 @@
     // Etapa 1: BM + as 7 cidades reais numa requisição só por lote (requisição é o recurso escasso: 300 a cada 5 min;
     // bytes vêm comprimidos). A tabela aparece aqui; o botão libera aqui.
     try {
-    falhas += await buscarLotes(montarLotes(ids, `${base}/api/v2/stats/prices/`, `.json?locations=BlackMarket,${TODAS_CIDADES_API}`), tratarPrecos, 'Buscando preços');
+    falhas += await buscarLotes(montarLotes(ids, `${base}/api/v2/stats/prices/`, `.json?locations=BlackMarket,${TODAS_CIDADES_API}${ehRest(cidadeSel) ? ',' + REDE_API : ''}`), tratarPrecos, 'Buscando preços');
     if (!vivo()) return;
     const idsComBm = ids.filter((id) => dados.get(id)?.bm);
     publicar();
@@ -1276,13 +1299,14 @@
     // só com preço visto, e quantidade quem confere é você, no jogo.
     if (!modoTodas && el.estimar.value !== 'nao') {
       setStatus(`${origem} → Black Market · preços em ${seg()} · buscando média de vendas da cidade…`);
-      const chaveCid = (id) => `${base}|${CIDADES[cidadeSel]}|${id}`;
+      const chaveCid = (id) => `${base}|${cidadeSel}|${id}`;
       const faltam = idsComBm.filter((id) => !lerCache(chaveCid(id)));
       if (faltam.length) {
         const inicio = new Date(hoje.getTime() - DIAS_HISTORICO * 864e5);
         const recebidos = new Map();
-        falhas += await buscarLotes(montarLotes(faltam, `${base}/api/v2/stats/history/`, `.json?locations=${CIDADES[cidadeSel]}&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`), (entradas) => {
+        falhas += await buscarLotes(montarLotes(faltam, `${base}/api/v2/stats/history/`, `.json?locations=${CIDADES[cidadeSel] || REDE_API}&time-scale=24&date=${data(inicio)}&end_date=${data(hoje)}`), (entradas) => {
           for (const h of entradas) {
+            if (nomeMercado(h.location) !== cidadeSel) continue; // a rede dos Rests vem inteira
             const r = resumirHistorico(h.data);
             if (!r) continue;
             if (!recebidos.has(h.item_id)) recebidos.set(h.item_id, {});
@@ -1787,7 +1811,7 @@
     craft.familias = [...fam.values()].map((f) => { const e0 = Math.min(...Object.keys(f.variantes).map(Number)); f.nome = f.nomes[e0]; f.busca = semAcento(`${f.nome} t${f.tier} ${f.tipo}`); return f; });
     craft.familiaPorId = new Map();
     for (const f of craft.familias) for (const id of Object.values(f.variantes)) craft.familiaPorId.set(id, f);
-    const cidades = Object.keys(CIDADES);
+    const cidades = MERCADOS;
     c('TudoEm').innerHTML = '<option value="" selected>mais barato em cada</option>' + cidades.map((n) => `<option value="${n}">${n}</option>`).join('');
     craft.qual = criarMulti(c('Qual'), [1, 2, 3, 4, 5].map((q) => ({ valor: q, rotulo: QUALIDADE[q] })), [1, 2, 3, 4, 5]);
     c('Premium').value = el.premium.value;
@@ -1833,29 +1857,29 @@
     }));
     iniciarReco(); // "O que craftar" é o modo que abre primeiro
     c('Enchs').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ench]'); if (!b || !craft.familia) return; craft.ench = Number(b.dataset.ench); craft.rota = 'auto'; craft.manual.clear(); craft.manualVenda = null; craft.modo.clear(); mostrarItem(); buscarCraft(); });
-    c('Rotas').addEventListener('click', (ev) => { const b = ev.target.closest('[data-rota]'); if (!b) return; craft.rota = b.dataset.rota; renderMateriais(); calcular(); });
-    for (const id of ['SpecNivel', 'SpecFoco']) c(id).addEventListener('input', () => { guardarSpec(); calcular(); });
-    c('Qual').addEventListener('change', () => { if (craft.precos) { craft.manualVenda = null; renderVenda(); calcular(); } });
-    for (const id of ['Qtd', 'RetCraft', 'TaxaCraft']) c(id).addEventListener('input', calcular);
+    c('Rotas').addEventListener('click', (ev) => { const b = ev.target.closest('[data-rota]'); if (!b) return; craft.rota = b.dataset.rota; renderMateriais(); calcularCraft(); });
+    for (const id of ['SpecNivel', 'SpecFoco']) c(id).addEventListener('input', () => { guardarSpec(); calcularCraft(); });
+    c('Qual').addEventListener('change', () => { if (craft.precos) { craft.manualVenda = null; renderVenda(); calcularCraft(); } });
+    for (const id of ['Qtd', 'RetCraft', 'TaxaCraft']) c(id).addEventListener('input', calcularCraft);
     c('TudoEm').addEventListener('change', () => {
       const cid = c('TudoEm').value;
       for (const linha of c('Materiais').querySelectorAll('.craft-linha')) { if (cid) craft.cidadeDe.set(linha.dataset.id, cid); else craft.cidadeDe.delete(linha.dataset.id); craft.manual.delete(linha.dataset.id); preencherLinha(linha); }
-      calcular();
+      calcularCraft();
     });
     // Delegação: célula de cidade, preço manual e modo comprar/refinar.
     c('Materiais').addEventListener('click', (ev) => {
       const cel = ev.target.closest('.craft-cel'); const modo = ev.target.closest('[data-modo]');
-      if (cel && !cel.classList.contains('vazio')) { const linha = cel.closest('.craft-linha'); craft.cidadeDe.set(linha.dataset.id, cel.dataset.cid); craft.manual.delete(linha.dataset.id); c('TudoEm').value = ''; preencherLinha(linha); calcular(); }
-      if (modo) { craft.modo.set(modo.closest('.craft-mat').dataset.mat, modo.dataset.modo); calcular(); }
+      if (cel && !cel.classList.contains('vazio')) { const linha = cel.closest('.craft-linha'); craft.cidadeDe.set(linha.dataset.id, cel.dataset.cid); craft.manual.delete(linha.dataset.id); c('TudoEm').value = ''; preencherLinha(linha); calcularCraft(); }
+      if (modo) { craft.modo.set(modo.closest('.craft-mat').dataset.mat, modo.dataset.modo); calcularCraft(); }
     });
     c('Materiais').addEventListener('input', (ev) => {
       const inp = ev.target.closest('[data-manual]');
       if (inp) { const v = num(inp); if (v === null) craft.manual.delete(inp.dataset.manual); else craft.manual.set(inp.dataset.manual, v); }
-      if (inp || ev.target.matches('[data-ret-refino], [data-taxa-refino]')) calcular();
+      if (inp || ev.target.matches('[data-ret-refino], [data-taxa-refino]')) calcularCraft();
     });
-    c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio') || !cel.dataset.q) return; craft.cidVenda = cel.dataset.cid; craft.qualVenda = Number(cel.dataset.q); craft.manualVenda = null; renderVenda(); calcular(); });
-    c('PrecoVenda').addEventListener('input', () => { craft.manualVenda = num(c('PrecoVenda')); calcular(); });
-    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null; renderVenda(); calcular(); });
+    c('VendaCidades').addEventListener('click', (ev) => { const cel = ev.target.closest('.craft-cel'); if (!cel || cel.classList.contains('vazio') || !cel.dataset.q) return; craft.cidVenda = cel.dataset.cid; craft.qualVenda = Number(cel.dataset.q); craft.manualVenda = null; renderVenda(); calcularCraft(); });
+    c('PrecoVenda').addEventListener('input', () => { craft.manualVenda = num(c('PrecoVenda')); calcularCraft(); });
+    for (const id of ['ModoVenda', 'Premium']) c(id).addEventListener('change', () => { craft.cidVenda = null; craft.qualVenda = null; craft.manualVenda = null; renderVenda(); calcularCraft(); });
   }
 
   function escolherFamilia(f) {
@@ -1914,7 +1938,7 @@
   const rotaAtual = () => { const rotas = rotasDe(itemAtual(), craft.familia); return rotas.find((r) => r.chave === craft.rota) || rotas[0] || null; };
   const receitaAtual = () => (rotaAtual() ? rotaAtual().mats : null);
   // Custo rápido por unidade de uma rota: cada material no mais barato, comprado pronto, com o retorno do craft. Pra
-  // escolher a rota padrão e rotular os chips; a conta de verdade é a de calcular().
+  // escolher a rota padrão e rotular os chips; a conta de verdade é a de calcularCraft().
   function custoRapido(mats, rC) {
     let total = 0;
     for (const ent of mats) { const [m, q] = ent; const cid = cidadeMaisBarata(m); const p = cid ? precoEm(m, cid, 'venda') : null; if (!p) return null; total += p.p * q * (semRetorno(ent) ? 1 : 1 - rC); }
@@ -1935,17 +1959,19 @@
     const hoje = new Date(), inicio = new Date(hoje.getTime() - 7 * 864e5);
     const dia = (d) => d.toISOString().slice(0, 10);
     c('Buscar').disabled = true;
-    craftStatus(`Buscando ${ids.length} preços em ${Object.keys(CIDADES).length} cidades…`);
+    craftStatus(`Buscando ${ids.length} preços em ${MERCADOS.length} mercados…`);
     try {
       const [precos, hist] = await Promise.all([
-        buscar(`${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${TODAS_CIDADES_API},BlackMarket`),
-        buscar(`${base}/api/v2/stats/history/${id}.json?locations=${TODAS_CIDADES_API},BlackMarket&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`),
+        buscar(`${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${MERCADOS_API},BlackMarket`),
+        buscar(`${base}/api/v2/stats/history/${id}.json?locations=${MERCADOS_API},BlackMarket&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`),
       ]);
       if (itemAtual() !== id) return; // trocou de item no meio da busca
       craft.precos = new Map(); // id -> cidade -> qualidade -> { venda: {p,d}|null, compra: {p,d}|null }
       for (const row of precos) {
+        const cid = nomeMercado(row.city);
+        if (!cid) continue;
         if (!craft.precos.has(row.item_id)) craft.precos.set(row.item_id, {});
-        (craft.precos.get(row.item_id)[row.city] ||= {})[row.quality] = {
+        (craft.precos.get(row.item_id)[cid] ||= {})[row.quality] = {
           venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null,
           compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null,
         };
@@ -1954,11 +1980,13 @@
       for (const hh of hist) {
         const r = resumirHistorico(hh.data);
         if (!r) continue;
+        const cid = nomeMercado(hh.location);
+        if (!cid) continue;
         const qtd = hh.data.reduce((a, p) => a + (p.item_count || 0), 0);
-        (craft.hist[hh.location] ||= {})[hh.quality] = { media: r.media, qtd, porDia: qtd / 7 };
+        (craft.hist[cid] ||= {})[hh.quality] = { media: r.media, qtd, porDia: qtd / 7 };
       }
-      if (rotasDe(id, craft.familia).length && !Object.keys(CIDADES).some((cid) => precoEm(id, cid, 'compra')) && Object.keys(CIDADES).some((cid) => precoEm(id, cid, 'venda'))) c('ModoVenda').value = 'ordem';
-      renderMateriais(); renderVenda(); calcular();
+      if (rotasDe(id, craft.familia).length && !MERCADOS.some((cid) => precoEm(id, cid, 'compra')) && MERCADOS.some((cid) => precoEm(id, cid, 'venda'))) c('ModoVenda').value = 'ordem';
+      renderMateriais(); renderVenda(); calcularCraft();
       const info = infoItem(id);
       craftStatus(`${info.nome} ${rotuloTier(info.tier, info.ench)}: preços buscados às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. "Há" é quando alguém viu aquele preço no jogo.`);
     } catch (err) {
@@ -1970,7 +1998,7 @@
   const linhaHtml = (id, rotulo) => `<div class="craft-linha" data-id="${id}"><div class="rotulo">${rotulo}</div><div class="craft-cidades"></div><div class="craft-preco"><label>Preço unitário em <b class="cid-txt"></b> <input type="number" class="qtd" min="0" step="1" data-manual="${id}"></label><span class="conta"></span></div></div>`;
   function preencherLinha(linha) {
     const id = linha.dataset.id;
-    const cidades = Object.keys(CIDADES).map((cid) => ({ cid, p: precoEm(id, cid, 'venda') }));
+    const cidades = MERCADOS.map((cid) => ({ cid, p: precoEm(id, cid, 'venda') }));
     const melhor = cidades.filter((x) => x.p).sort((a, b) => a.p.p - b.p.p)[0] || null;
     let sel = craft.cidadeDe.get(id);
     if (!sel || !cidades.find((x) => x.cid === sel)) sel = melhor ? melhor.cid : null;
@@ -1984,7 +2012,7 @@
   const precoLinha = (id) => (craft.manual.has(id) ? craft.manual.get(id) : (precoEm(id, craft.cidadeDe.get(id) || cidadeMaisBarata(id), 'venda') || {}).p ?? null);
   function cidadeMaisBarata(id) {
     let melhor = null;
-    for (const cid of Object.keys(CIDADES)) { const p = precoEm(id, cid, 'venda'); if (p && (!melhor || p.p < melhor.p.p)) melhor = { cid, p }; }
+    for (const cid of MERCADOS) { const p = precoEm(id, cid, 'venda'); if (p && (!melhor || p.p < melhor.p.p)) melhor = { cid, p }; }
     return melhor ? melhor.cid : null;
   }
 
@@ -2038,7 +2066,7 @@
     });
     c('Lista').innerHTML = compras.length ? blocos.join('') + `<p class="craft-lista-total">Total: <b>${fmt.format(Math.round(prata))}</b> de prata · peso <b>${peso.toFixed(1).replace('.', ',')}</b>. Quantidades já descontam o retorno reaproveitado; a sobra do último craft fica na bag.</p>` : '';
   }
-  function calcular() {
+  function calcularCraft() {
     const R = window.ALBION_RECEITAS, id = itemAtual();
     if (!id || !craft.precos) return;
     const receita = receitaAtual();
@@ -2161,7 +2189,7 @@
     mostrarFoco();
     rc('Buscar').addEventListener('click', buscarReco);
     for (const id of ['Prata', 'Taxa', 'MinDia', 'FocoDisp']) rc(id).addEventListener('input', recalc);
-    for (const id of ['Cidades', 'Premium', 'Idade', 'Dias', 'SoSpec']) rc(id).addEventListener('change', recalc);
+    for (const id of ['Cidades', 'Premium', 'Idade', 'Dias', 'SoSpec', 'Rests']) rc(id).addEventListener('change', recalc);
     rc('Foco').addEventListener('change', () => { mostrarFoco(); recalc(); });
     for (const id of ['Tier', 'Ench', 'Slot']) rc(id).addEventListener('change', () => { if (reco.dados) recoStatus('O recorte mudou: clique em Descobrir o que craftar de novo.'); });
     rc('Linhas').addEventListener('click', (ev) => {
@@ -2183,19 +2211,19 @@
     if (!itens.length) { recoStatus('Nenhum item craftável nesse recorte.', true); return; }
     const mats = new Set();
     for (const i of itens) for (const rota of rotasDe(i.id, craft.familiaPorId.get(i.id))) for (const [m] of rota.mats) mats.add(m);
-    const locsVenda = `${TODAS_CIDADES_API},BlackMarket`;
+    const locsVenda = `${MERCADOS_API},BlackMarket`;
     const hoje = new Date(), inicio = new Date(hoje.getTime() - 7 * 864e5), dia = (d) => d.toISOString().slice(0, 10);
     const urls = [
       ...montarLotes(itens.map((i) => i.id), `${base}/api/v2/stats/prices/`, `.json?locations=${locsVenda}&qualities=1`).map((u) => ['item', u]),
-      ...montarLotes([...mats], `${base}/api/v2/stats/prices/`, `.json?locations=${TODAS_CIDADES_API}&qualities=1`).map((u) => ['mat', u]),
+      ...montarLotes([...mats], `${base}/api/v2/stats/prices/`, `.json?locations=${MERCADOS_API}&qualities=1`).map((u) => ['mat', u]),
       ...montarLotes(itens.map((i) => i.id), `${base}/api/v2/stats/history/`, `.json?locations=${locsVenda}&qualities=1&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`).map((u) => ['hist', u]),
     ];
     const dados = { venda: new Map(), mat: new Map(), hist: new Map() }; // id -> local -> preço / histórico
     const porLocal = (mapa, id) => mapa.get(id) || (mapa.set(id, {}), mapa.get(id));
     const tratar = (tipo, rows) => {
-      if (tipo === 'item') for (const row of rows) porLocal(dados.venda, row.item_id)[row.city] = { compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null, venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null };
-      else if (tipo === 'mat') { for (const row of rows) if (row.sell_price_min > 0) porLocal(dados.mat, row.item_id)[row.city] = { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') }; }
-      else for (const hh of rows) { const r = resumirHistorico(hh.data); if (r) porLocal(dados.hist, hh.item_id)[hh.location] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 }; }
+      if (tipo === 'item') for (const row of rows) { const cid = nomeMercado(row.city); if (cid) porLocal(dados.venda, row.item_id)[cid] = { compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null, venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null }; }
+      else if (tipo === 'mat') { for (const row of rows) { const cid = nomeMercado(row.city); if (cid && row.sell_price_min > 0) porLocal(dados.mat, row.item_id)[cid] = { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') }; } }
+      else for (const hh of rows) { const r = resumirHistorico(hh.data), cid = nomeMercado(hh.location); if (r && cid) porLocal(dados.hist, hh.item_id)[cid] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 }; }
     };
     rc('Buscar').disabled = true; rc('Barra').hidden = false; rc('Barra').firstElementChild.style.width = '0%';
     let feitos = 0, falhas = 0;
@@ -2225,7 +2253,8 @@
     const taxaNut = num(rc('Taxa')) || 0, taxaBase = rc('Premium').value === 'premium' ? 0.04 : 0.08;
     const maxCidades = Number(rc('Cidades').value) || 3, minDia = num(rc('MinDia')) ?? 0, diasMax = Number(rc('Dias').value) || 0;
     const idadeMax = (Number(rc('Idade').value) || 6) * 3600000, agora = Date.now(), soSpec = rc('SoSpec').checked;
-    const cidades = Object.keys(CIDADES), locais = [...cidades, BM];
+    const comRests = rc('Rests').checked;
+    const cidades = mercadosAtivos(comRests), locais = [...cidades, BM];
     const contagem = { alvos: 0, semSpec: 0, semVenda: 0, semMat: 0, velhos: 0, absurdos: 0 };
     const fresco = (x) => { if (agora - x.d > idadeMax) { contagem.velhos++; return false; } return true; };
     // Ofertas de um material: cidades com preço fresco e não absurdo (abaixo de 25% da mediana entre cidades), do mais barato pro mais caro.
@@ -2259,7 +2288,8 @@
         else vendas.push({ cid: loc, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 });
       }
       if (!vendas.length) { contagem.semVenda++; continue; }
-      const bonusCid = R.b[base] || null;
+      const bonusCid = R.b[base] || null, bonusRest = comRests ? R.rb[base] || null : null;
+      const bonusCids = [bonusCid, bonusRest].filter(Boolean);
       const rotas = [];
       for (const rt of rotasDe(it.id, fam)) {
         const listas = rt.mats.map((ent) => ({ id: ent[0], q: ent[1], sem: semRetorno(ent), ofertas: ofertas(ent[0]) }));
@@ -2283,8 +2313,8 @@
             const base2 = new Set([...lugares, destino]);
             // Craftar na cidade com bônus (se couber no limite de cidades) ou numa cidade que já está na rota.
             const opcoes = [];
-            if (bonusCid) { const p = base2.has(bonusCid) ? base2.size : base2.size + 1; if (p <= maxCidades) opcoes.push({ cidCraft: bonusCid, bonus: true, custo: cBonus, paradas: p }); }
-            if (base2.size <= maxCidades && !(bonusCid && base2.has(bonusCid))) opcoes.push({ cidCraft: lugares.has(destino) ? destino : [...lugares][0], bonus: false, custo: cSem, paradas: base2.size });
+            for (const bc of bonusCids) { const p = base2.has(bc) ? base2.size : base2.size + 1; if (p <= maxCidades) opcoes.push({ cidCraft: bc, bonus: true, custo: cBonus, paradas: p }); }
+            if (base2.size <= maxCidades && !bonusCids.some((bc) => base2.has(bc))) opcoes.push({ cidCraft: lugares.has(destino) ? destino : [...lugares][0], bonus: false, custo: cSem, paradas: base2.size });
             for (const o of opcoes) {
               const lucro = v.p * (1 - v.taxa) - o.custo;
               rotas.push({ rt, compra, cidCraft: o.cidCraft, bonus: o.bonus, r: o.bonus ? rBonus : rSem, venda: v, custo: o.custo, lucro, roi: o.custo ? lucro / o.custo : 0, paradas: o.paradas, fee, usaFoco });
@@ -2315,7 +2345,7 @@
       const limite = n === nPrata ? 'prata' : n === nFoco ? 'foco' : 'mercado';
       const custoSemFoco = melhor.compra.reduce((a, x) => a + x.p * x.q * (x.sem ? 1 : 1 - retornoCraft(melhor.bonus, false)), 0) + melhor.fee;
       const focoPor1000 = foco && focoUnit ? ((custoSemFoco - melhor.custo) / focoUnit) * 1000 : null;
-      reco.linhas.push({ it, fam, spec: sp && sp.nivel ? sp.nivel : null, bonusCid, melhor, alternativas, h7, n, invest: n ? invest(n) : 0, recebe: n * melhor.venda.p * (1 - melhor.venda.taxa), lucroTotal: n ? n * melhor.venda.p * (1 - melhor.venda.taxa) - invest(n) : 0, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, limite, focoUnit, focoSalvo, focoUsado: focoUnit * n, focoPor1000 });
+      reco.linhas.push({ it, fam, spec: sp && sp.nivel ? sp.nivel : null, bonusCid: bonusCids.join(' e ') || null, melhor, alternativas, h7, n, invest: n ? invest(n) : 0, recebe: n * melhor.venda.p * (1 - melhor.venda.taxa), lucroTotal: n ? n * melhor.venda.p * (1 - melhor.venda.taxa) - invest(n) : 0, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, limite, focoUnit, focoSalvo, focoUsado: focoUnit * n, focoPor1000 });
     }
     reco.contagem = contagem;
   }
@@ -2337,12 +2367,12 @@
       const porCid = new Map();
       for (const x of rt.compra) { if (!porCid.has(x.cid)) porCid.set(x.cid, []); porCid.get(x.cid).push(x); }
       const material = (x) => (n ? `<b>${fmt.format(unidadesComprar(x.q, n, x.sem ? 0 : rt.r))}</b> × ${nomeTier(x.id)} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${x.q} × ${nomeTier(x.id)} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)}`);
-      const compras = [...porCid].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em <b>${cid}</b>: ${itens.map(material).join(' e ')}</li>`).join('');
+      const compras = [...porCid].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em ${lugarHtml(cid)}: ${itens.map(material).join(' e ')}</li>`).join('');
       const encantar = rt.rt.chave !== 'direto';
-      const crafte = `<li><span class="passo refino">Crafte</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}${encantar ? `${nomeTier(rt.rt.craftId)} ` : ''}em <b>${rt.cidCraft}</b> ${rt.bonus ? 'com bônus da cidade' : 'sem bônus'}${rt.usaFoco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam${fixos.length ? ` (${fixos.join(', ')} não)` : ''}</li>`;
+      const crafte = `<li><span class="passo refino">Crafte</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}${encantar ? `${nomeTier(rt.rt.craftId)} ` : ''}em ${lugarHtml(rt.cidCraft)} ${rt.bonus ? 'com bônus da cidade' : 'sem bônus'}${rt.usaFoco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam${fixos.length ? ` (${fixos.join(', ')} não)` : ''}</li>`;
       const encante = encantar ? `<li><span class="passo encante">Encante</span> até <span class="tier">${rotuloTier(l.it.tier, l.it.ench)}</span> com ${rt.rt.upgrade.map(([m, q]) => `${q} × ${escapar(infoItem(m).nome)}`).join(' + ')} por item</li>` : '';
       const v = rt.venda;
-      const vendaTxt = v.cid === BM ? `no <b>Black Market</b> (Caerleon) na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'nahora' ? `em <b>${v.cid}</b> na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'ordem' ? `em <b>${v.cid}</b> com ordem de venda a <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : `em <b>${v.cid}</b> com ordem de venda pela média de 7 dias, <b>${fmt.format(v.p)}</b> (não há ordem atual que preste)`;
+      const vendaTxt = v.cid === BM ? `no <b>Black Market</b> (Caerleon) na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'nahora' ? `em ${lugarHtml(v.cid)} na hora, pra ordem de compra de <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : v.modo === 'ordem' ? `em ${lugarHtml(v.cid)} com ordem de venda a <b>${fmt.format(v.p)}</b> ${idadeHtml(v.d)}` : `em ${lugarHtml(v.cid)} com ordem de venda pela média de 7 dias, <b>${fmt.format(v.p)}</b> (não há ordem atual que preste)`;
       return `<ol class="passos-rota">${compras}${crafte}${encante}<li><span class="passo venda">Venda</span> ${n ? `os <b>${fmt.format(n)}</b> ` : ''}${vendaTxt}</li></ol>`;
     };
     const contaCusto = (rt) => {
@@ -2374,7 +2404,7 @@
     }
     const c0 = reco.contagem;
     rc('Resumo').textContent = `${foco ? `Com foco (${fmt.format(num(rc('FocoDisp')) ?? 0)} disponível)` : 'Sem foco'}, ${fmt.format(prata)} de prata, até ${rc('Cidades').value} cidade(s) por rota, vendendo tudo em ${diasSel ? `até ${diasSel} dia(s)` : 'qualquer prazo'}, taxa da estação ${fmt.format(num(rc('Taxa')) || 0)} por 100 de nutrição. Cada linha é a rota que mais rende por item: os passos estão em "O que fazer" e a conta fica embaixo de cada número. Qualidade Normal. ⚠ é preço visto há mais de 1 hora.${linhas.length > 200 ? ' Mostrando os 200 primeiros.' : ''}`;
-    rc('Como').textContent = `Pra cada item, a página testa: craftar direto ou craftar um nível abaixo e encantar (runas, almas e relíquias entram como material e não voltam); comprar cada material numa das 2 cidades mais baratas, ou tudo numa cidade só; craftar na cidade com bônus da categoria do item (+15%, tabela da wiki: Fort Sterling martelo, lança, cajado sagrado, capacete de placa e armadura de tecido; Lymhurst espada, arco, cajado arcano, capacete e botas de couro; Bridgewatch besta, adaga, cajado amaldiçoado, armadura de placa e sapatos de tecido; Martlock machado, bordão, cajado de gelo, botas de placa e off-hand; Thetford maça, cajados da natureza e de fogo, armadura de couro e capuz de tecido; Caerleon manoplas e cajado metamorfo; Brecilien capa e bolsa) ou numa cidade que já está na rota; e vender em qualquer cidade ou no Black Market, na hora (ordem de compra) ou com ordem de venda (+2,5%), ou pela média de 7 dias quando não há ordem atual. Retorno = bônus ÷ (1 + bônus), com estação 18%, cidade com bônus +15% e foco +59%: 15,3%, 24,8%, 43,5% e 47,9%. Bônus diário não entra. Taxa da estação: nutrição = 11,25% do valor do item, que é a soma do valor dos materiais. Foco por item: o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização. A quantidade é o menor entre o que a prata compra (já reaproveitando o retorno), o que o foco cobre e o que o lugar de venda negocia no prazo. Fica de fora: preço com mais de ${rc('Idade').options[rc('Idade').selectedIndex].text} (${fmt.format(c0.velhos)}), preço fora da realidade (${fmt.format(c0.absurdos)}), ${fmt.format(c0.semVenda)} itens sem lugar de venda com pelo menos ${fmt.format(num(rc('MinDia')) ?? 0)} vendas por dia, ${fmt.format(c0.semMat)} sem preço de algum material${c0.semSpec ? `, ${fmt.format(c0.semSpec)} fora das suas especializações` : ''}.`;
+    rc('Como').textContent = `Pra cada item, a página testa: craftar direto ou craftar um nível abaixo e encantar (runas, almas e relíquias entram como material e não voltam); comprar cada material numa das 2 cidades mais baratas, ou tudo numa cidade só; craftar na cidade com bônus da categoria do item (+15%, tabela da wiki: Fort Sterling martelo, lança, cajado sagrado, capacete de placa e armadura de tecido; Lymhurst espada, arco, cajado arcano, capacete e botas de couro; Bridgewatch besta, adaga, cajado amaldiçoado, armadura de placa e sapatos de tecido; Martlock machado, bordão, cajado de gelo, botas de placa e off-hand; Thetford maça, cajados da natureza e de fogo, armadura de couro e capuz de tecido; Caerleon manoplas e cajado metamorfo; Brecilien capa e bolsa; nos Rests da zona negra, Arthur's placa, espada, machado, maça, martelo, besta e manoplas, Merlyn's couro, arco, adaga, lança, bordão, natureza e metamorfo, Morgana's tecido e os cajados arcano, amaldiçoado, de fogo, de gelo e sagrado) ou numa cidade que já está na rota; e vender em qualquer cidade ou no Black Market, na hora (ordem de compra) ou com ordem de venda (+2,5%), ou pela média de 7 dias quando não há ordem atual. Retorno = bônus ÷ (1 + bônus), com estação 18%, cidade com bônus +15% e foco +59%: 15,3%, 24,8%, 43,5% e 47,9%. Bônus diário não entra. Taxa da estação: nutrição = 11,25% do valor do item, que é a soma do valor dos materiais. Foco por item: o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização. A quantidade é o menor entre o que a prata compra (já reaproveitando o retorno), o que o foco cobre e o que o lugar de venda negocia no prazo. Fica de fora: preço com mais de ${rc('Idade').options[rc('Idade').selectedIndex].text} (${fmt.format(c0.velhos)}), preço fora da realidade (${fmt.format(c0.absurdos)}), ${fmt.format(c0.semVenda)} itens sem lugar de venda com pelo menos ${fmt.format(num(rc('MinDia')) ?? 0)} vendas por dia, ${fmt.format(c0.semMat)} sem preço de algum material${c0.semSpec ? `, ${fmt.format(c0.semSpec)} fora das suas especializações` : ''}.`;
     rc('Resultado').hidden = false;
   }
   // ==== Refino: motor de rotas (bruto → refinado), por tier e encantamento ====
@@ -2382,8 +2412,8 @@
   // diário +10% ou +20% no recurso do dia; retorno = bônus ÷ (1 + bônus) (15,3% / 36,7% / 43,5% / 53,9%). Hideout não entra.
   // A estação cobra por 100 de nutrição e cada unidade consome 11,25% do valor do item (T4 1,8; T8 28,8).
   const REFINO = { madeira: ['WOOD', 'PLANKS', 'madeira → tábuas'], minerio: ['ORE', 'METALBAR', 'minério → barras de metal'], pele: ['HIDE', 'LEATHER', 'pele → couro'], fibra: ['FIBER', 'CLOTH', 'fibra → tecido'], pedra: ['ROCK', 'STONEBLOCK', 'pedra → blocos de pedra'] };
-  const REFINO_REGRAS = { estacao: 0.18, bonusCidade: 0.40, foco: 0.59, nutricao: 0.1125, cidadeBonus: { WOOD: 'Fort Sterling', ORE: 'Thetford', HIDE: 'Martlock', FIBER: 'Lymhurst', ROCK: 'Bridgewatch' } };
-  const retornoRefino = (raw, cidade, foco, diario = 0) => { const b = REFINO_REGRAS.estacao + (REFINO_REGRAS.cidadeBonus[raw] === cidade ? REFINO_REGRAS.bonusCidade : 0) + (foco ? REFINO_REGRAS.foco : 0) + diario; return b / (1 + b); };
+  const REFINO_REGRAS = { estacao: 0.18, estacaoRest: 0.15, bonusCidade: 0.40, foco: 0.59, nutricao: 0.1125, cidadeBonus: { WOOD: 'Fort Sterling', ORE: 'Thetford', HIDE: 'Martlock', FIBER: 'Lymhurst', ROCK: 'Bridgewatch' } };
+  const retornoRefino = (raw, cidade, foco, diario = 0) => { const b = (ehRest(cidade) ? REFINO_REGRAS.estacaoRest : REFINO_REGRAS.estacao) + (REFINO_REGRAS.cidadeBonus[raw] === cidade ? REFINO_REGRAS.bonusCidade : 0) + (foco ? REFINO_REGRAS.foco : 0) + diario; return b / (1 + b); };
   const refino = { pronto: false, dados: null, linhas: [], contagem: null, ordem: 'lucroTotal', direcao: 'desc', aberto: null };
   const rf = (id) => $('ref' + id);
   const refStatus = (msg, erro = false) => { rf('Status').textContent = msg; rf('Status').classList.toggle('erro', erro); };
@@ -2400,7 +2430,7 @@
     const mostrarFoco = () => document.querySelectorAll('#craftRefinoWrap .so-foco').forEach((x) => { x.hidden = rf('Foco').value !== 'sim'; });
     mostrarFoco();
     for (const id of ['Prata', 'Taxa', 'MinDia', 'FocoDisp', 'Spec']) rf(id).addEventListener('input', recalc);
-    for (const id of ['Cidades', 'Premium', 'Idade', 'Dias', 'Diario']) rf(id).addEventListener('change', recalc);
+    for (const id of ['Cidades', 'Premium', 'Idade', 'Dias', 'Diario', 'Rests']) rf(id).addEventListener('change', recalc);
     rf('Foco').addEventListener('change', () => { mostrarFoco(); recalc(); });
     rf('Recurso').addEventListener('change', () => { if (refino.dados) refStatus('Recurso mudou: clique em Encontrar as melhores rotas de novo.'); });
     rf('Linhas').addEventListener('click', (ev) => {
@@ -2428,13 +2458,13 @@
     const urls = [];
     for (const tipo of tipos) {
       const ids = idsRefino(tipo), refinados = ids.filter((id) => id.includes('_' + REFINO[tipo][1]));
-      urls.push(['precos', `${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${TODAS_CIDADES_API}&qualities=1`]);
-      urls.push(['hist', `${base}/api/v2/stats/history/${refinados.join(',')}.json?locations=${TODAS_CIDADES_API}&qualities=1&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`]);
+      urls.push(['precos', `${base}/api/v2/stats/prices/${ids.join(',')}.json?locations=${MERCADOS_API}&qualities=1`]);
+      urls.push(['hist', `${base}/api/v2/stats/history/${refinados.join(',')}.json?locations=${MERCADOS_API}&qualities=1&time-scale=24&date=${dia(inicio)}&end_date=${dia(hoje)}`]);
     }
     const mapa = new Map(), histMapa = new Map(); // id -> cidade -> { venda, compra } ; id -> cidade -> { media, porDia }
     const tratar = (tipo, rows) => {
-      if (tipo === 'precos') for (const row of rows) { if (!mapa.has(row.item_id)) mapa.set(row.item_id, {}); mapa.get(row.item_id)[row.city] = { venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null, compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null }; }
-      else for (const hh of rows) { const r = resumirHistorico(hh.data); if (!r) continue; if (!histMapa.has(hh.item_id)) histMapa.set(hh.item_id, {}); histMapa.get(hh.item_id)[hh.location] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 }; }
+      if (tipo === 'precos') for (const row of rows) { const cid = nomeMercado(row.city); if (!cid) continue; if (!mapa.has(row.item_id)) mapa.set(row.item_id, {}); mapa.get(row.item_id)[cid] = { venda: row.sell_price_min > 0 ? { p: row.sell_price_min, d: Date.parse(row.sell_price_min_date + 'Z') } : null, compra: row.buy_price_max > 0 ? { p: row.buy_price_max, d: Date.parse(row.buy_price_max_date + 'Z') } : null }; }
+      else for (const hh of rows) { const r = resumirHistorico(hh.data), cid = nomeMercado(hh.location); if (!r || !cid) continue; if (!histMapa.has(hh.item_id)) histMapa.set(hh.item_id, {}); histMapa.get(hh.item_id)[cid] = { media: r.media, porDia: hh.data.reduce((a, p) => a + (p.item_count || 0), 0) / 7 }; }
     };
     rf('Buscar').disabled = true; rf('Barra').hidden = false; rf('Barra').firstElementChild.style.width = '0%';
     let feitos = 0, falhas = 0;
@@ -2470,7 +2500,7 @@
     for (const v of refino.diario.get()) { const [raw, b] = v.split(':'); diario[raw] = Math.max(diario[raw] || 0, Number(b)); }
     const maxCidades = Number(rf('Cidades').value) || 3;
     const taxaBase = rf('Premium').value === 'premium' ? 0.04 : 0.08;
-    const cidades = Object.keys(CIDADES);
+    const cidades = mercadosAtivos(rf('Rests').checked);
     const idadeMax = (Number(rf('Idade').value) || 6) * 3600000, agora = Date.now();
     const minDia = num(rf('MinDia')) ?? 0;
     refino.linhas = [];
@@ -2562,10 +2592,10 @@
       const porCidade = new Map();
       for (const x of rt.compra) { if (!porCidade.has(x.cid)) porCidade.set(x.cid, []); porCidade.get(x.cid).push(x); }
       const material = (x) => { const i = infoItem(x.id); const nome = `${escapar(i.nome)} <span class="tier">${rotuloTier(i.tier, i.ench)}</span>`; return n ? `<b>${fmt.format(unidadesComprar(x.q, n, rt.r))}</b> × ${nome} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${nome} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)} · ${x.q} por unidade`; };
-      const compras = [...porCidade].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em <b>${cid}</b>: ${itens.map(material).join(' e ')}</li>`).join('');
+      const compras = [...porCidade].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em ${lugarHtml(cid)}: ${itens.map(material).join(' e ')}</li>`).join('');
       const bonus = REFINO_REGRAS.cidadeBonus[RAW] === rt.cidRef;
       const vendaTxt = rt.venda.modo === 'nahora' ? `na hora, pra ordem de compra de <b>${fmt.format(rt.venda.p)}</b> ${idadeHtml(rt.venda.d)}` : rt.venda.modo === 'ordem' ? `com ordem de venda a <b>${fmt.format(rt.venda.p)}</b> ${idadeHtml(rt.venda.d)}` : `com ordem de venda pela média de 7 dias, <b>${fmt.format(rt.venda.p)}</b> (não há ordem atual que preste)`;
-      return `<ol class="passos-rota">${compras}<li><span class="passo refino">Refine</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}em <b>${rt.cidRef}</b> ${bonus ? 'com bônus da cidade' : 'sem bônus'}${foco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam</li><li><span class="passo venda">Venda</span> ${n ? `as <b>${fmt.format(n)}</b> ` : ''}em <b>${rt.venda.cid}</b> ${vendaTxt}</li></ol>`;
+      return `<ol class="passos-rota">${compras}<li><span class="passo refino">Refine</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}em ${lugarHtml(rt.cidRef)} ${bonus ? 'com bônus da cidade' : 'sem bônus'}${foco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam</li><li><span class="passo venda">Venda</span> ${n ? `as <b>${fmt.format(n)}</b> ` : ''}em ${lugarHtml(rt.venda.cid)} ${vendaTxt}</li></ol>`;
     };
     // A conta do custo por unidade, em linhas curtas.
     const contaCusto = (rt, fee) => {
@@ -2591,7 +2621,7 @@
     const prata = num(rf('Prata')) || 0;
     const idadeTxtSel = rf('Idade').options[rf('Idade').selectedIndex].text;
     rf('Resumo').textContent = `${foco ? `Com foco (${fmt.format(num(rf('FocoDisp')) ?? 0)} disponível, especialização ${fmt.format(Math.min(100, Math.max(0, num(rf('Spec')) ?? 0)))})` : 'Sem foco'}, ${fmt.format(prata)} de prata, até ${rf('Cidades').value} cidade(s) por rota, vendendo tudo em ${diasSel ? `até ${diasSel} dia(s)` : 'qualquer prazo'}, taxa da estação ${fmt.format(num(rf('Taxa')) || 0)} por 100 de nutrição${diarioTxt ? `, bônus diário: ${diarioTxt}` : ''}. Cada linha é a rota que mais rende por unidade: os passos estão em "O que fazer" e a conta fica embaixo de cada número. ⚠ é preço visto há mais de 1 hora.`;
-    rf('Como').textContent = `Pra cada refinado, a página testa todas as combinações: comprar o bruto e o refinado do tier anterior em qualquer cidade; refinar na cidade com bônus do recurso (Fort Sterling tábuas, Thetford barras, Martlock couro, Lymhurst tecido, Bridgewatch blocos) ou numa cidade que já está na rota; vender em qualquer cidade na hora (ordem de compra, taxa de ${rf('Premium').value === 'premium' ? '4%' : '8%'}) ou com ordem de venda (mais 2,5%). Retorno = bônus ÷ (1 + bônus), com estação 18%, bônus da cidade +40% e foco +59%: 15,3% sem nada, 36,7% com bônus da cidade, 43,5% com foco, 53,9% com os dois. Bônus diário entra pelo que você marcar (+10% ou +20% no bônus do recurso). Custo por unidade = materiais × (1 − retorno) + taxa da estação. A estação cobra por 100 de nutrição (${fmt.format(num(rf('Taxa')) || 0)} aqui) e cada unidade consome 11,25% do valor do item: T4 1,8, T5 3,6, T6 7,2, T7 14,4, T8 28,8, dobrando a cada encantamento. Lucro = venda menos a taxa, menos o custo. Fica de fora: preço visto há mais de ${idadeTxtSel} (${fmt.format(refino.contagem.velhos)} preços), preço fora da realidade (${fmt.format(refino.contagem.absurdos)}: abaixo de 25% da referência do item, ou venda acima de 3 vezes) e cidade de venda com menos de ${fmt.format(num(rf('MinDia')) ?? 0)} vendas por dia (${fmt.format(refino.contagem.semVolume)}). Sem ordem atual que preste, a venda usa a média de 7 dias e a linha diz isso. Empate de até 1% no lucro decide por menos cidades e preço mais novo. "Com sua prata": quantas unidades cabem comprando as quantidades já descontando o retorno reaproveitado, quanto gasta, quanto ganha e em quantos dias vende tudo no ritmo de vendas da cidade. A quantidade é o menor entre o que a prata compra, o que o foco cobre (custo de foco do jogo por unidade, que cai pela metade a cada 25 níveis de especialização; com premium você ganha 10.000 por dia e guarda até 30.000) e o que a cidade vende no prazo escolhido. "1.000 de foco = +X" é quanto o foco aumenta o lucro, pra decidir onde gastar o foco.`;
+    rf('Como').textContent = `Pra cada refinado, a página testa todas as combinações: comprar o bruto e o refinado do tier anterior em qualquer cidade; refinar na cidade com bônus do recurso (Fort Sterling tábuas, Thetford barras, Martlock couro, Lymhurst tecido, Bridgewatch blocos) ou numa cidade que já está na rota; vender em qualquer cidade na hora (ordem de compra, taxa de ${rf('Premium').value === 'premium' ? '4%' : '8%'}) ou com ordem de venda (mais 2,5%). Retorno = bônus ÷ (1 + bônus), com estação 18%, bônus da cidade +40% e foco +59%: 15,3% sem nada, 36,7% com bônus da cidade, 43,5% com foco, 53,9% com os dois. Nos Rests da zona negra (Arthur's, Merlyn's e Morgana's) a estação dá 15% e nenhum recurso tem bônus: 13% sem foco, 42,5% com foco. Bônus diário entra pelo que você marcar (+10% ou +20% no bônus do recurso). Custo por unidade = materiais × (1 − retorno) + taxa da estação. A estação cobra por 100 de nutrição (${fmt.format(num(rf('Taxa')) || 0)} aqui) e cada unidade consome 11,25% do valor do item: T4 1,8, T5 3,6, T6 7,2, T7 14,4, T8 28,8, dobrando a cada encantamento. Lucro = venda menos a taxa, menos o custo. Fica de fora: preço visto há mais de ${idadeTxtSel} (${fmt.format(refino.contagem.velhos)} preços), preço fora da realidade (${fmt.format(refino.contagem.absurdos)}: abaixo de 25% da referência do item, ou venda acima de 3 vezes) e cidade de venda com menos de ${fmt.format(num(rf('MinDia')) ?? 0)} vendas por dia (${fmt.format(refino.contagem.semVolume)}). Sem ordem atual que preste, a venda usa a média de 7 dias e a linha diz isso. Empate de até 1% no lucro decide por menos cidades e preço mais novo. "Com sua prata": quantas unidades cabem comprando as quantidades já descontando o retorno reaproveitado, quanto gasta, quanto ganha e em quantos dias vende tudo no ritmo de vendas da cidade. A quantidade é o menor entre o que a prata compra, o que o foco cobre (custo de foco do jogo por unidade, que cai pela metade a cada 25 níveis de especialização; com premium você ganha 10.000 por dia e guarda até 30.000) e o que a cidade vende no prazo escolhido. "1.000 de foco = +X" é quanto o foco aumenta o lucro, pra decidir onde gastar o foco.`;
     // Destaque: o melhor uso da prata agora, com as quantidades totais a comprar em cada cidade.
     const top = refino.linhas.filter((l) => l.n > 0 && l.lucroTotal > 0).sort((a, b) => b.lucroTotal - a.lucroTotal)[0];
     rf('Destaque').hidden = !top;
@@ -2619,7 +2649,7 @@
     const temReceita = rotasDe(id, craft.familia).length > 0, equip = catalogo.has(id);
     const lado = c('ModoVenda').value === 'ordem' ? 'venda' : 'compra';
     const outroLado = lado === 'compra' ? 'venda' : 'compra';
-    const cidades = equip ? [...Object.keys(CIDADES), 'Black Market'] : Object.keys(CIDADES); // BM só compra equipamento, na hora
+    const cidades = equip ? [...MERCADOS, 'Black Market'] : MERCADOS; // BM só compra equipamento, na hora
     c('VendaTitulo').textContent = temReceita ? 'Vender' : 'Preços por cidade';
     c('VendaCtl').hidden = !temReceita; c('PrecoLinha').hidden = !temReceita; c('Nota').hidden = !temReceita;
     const celHtml = (x, extra, sel, cls) => `<button type="button" class="craft-cel${x ? '' : ' vazio'}${sel ? ' sel' : ''}${cls || ''}" ${extra}>${cls ? `<span class="cid">${lado === 'compra' ? 'paga mais' : 'menor'}</span>` : ''}<b>${x ? fmt.format(x.p) : '—'}</b>${x ? idadeHtml(x.d) : '<span class="idade">sem preço</span>'}</button>`;

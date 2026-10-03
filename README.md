@@ -17,6 +17,10 @@ Ferramenta pra achar itens que valem comprar no mercado de uma cidade real e ven
 
 Os preços vêm ao vivo da [albion-online-data](https://www.albion-online-data.com/), direto do navegador de cada usuário. A conta guarda só filtros e viagens; preço nunca é guardado.
 
+## Rests (zona negra)
+
+Arthur's, Merlyn's e Morgana's Rest entram como mercados no Refino, no O que craftar, na Calculadora e como cidade de compra na aba principal (não em "Todas as cidades", que ficaria pesada). A API junta todos os mercados de contrabandista numa rede: o código `4300` traz a rede inteira (38 mercados) e a página fica só com os três Rests. Regras da wiki: refino no Rest com 15% de bônus e nenhum recurso com bônus; craft com 18% e +15% nas categorias de cada Rest (Arthur's placa e armas de corte/impacto, Merlyn's couro e armas de destreza, Morgana's tecido e cajados). Os passos marcam "zona negra". Em outubro de 2026 a rede não tinha histórico de vendas nos últimos 7 dias, então os Rests entram como lugar de compra, refino e craft, e só viram lugar de venda quando houver vendas por dia comprovadas.
+
 ## Como a atualização funciona
 
 1. Uma requisição por lote de itens traz BM + as 7 cidades reais. A tabela aparece aqui e o botão libera.
