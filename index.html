@@ -912,7 +912,7 @@
       <p><b>Lista de compras.</b> Embaixo dos totais, o que comprar em cada cidade, com quantidade já descontando o retorno reaproveitado, preço unitário, subtotal, total e peso.</p>
       <p><b>Materiais.</b> Cada material da receita vem com o preço em todas as cidades (menor ordem de venda de agora, com há quanto tempo alguém viu). A cidade mais barata fica verde e já vem escolhida; clique em outra pra comprar lá, ou use "Comprar tudo em". O preço unitário é editável: o que você digitar vale. Material refinado tem dois jeitos, "Comprar pronto" e "Refinar do bruto" (bruto e refinado do tier anterior, cada um com suas cidades); o mais barato vem marcado e você troca no clique. Cada material diz quantas unidades comprar já descontando o retorno reaproveitado entre um craft e outro (a devolução de um craft entra no seguinte; só a do último sobra na bag), a compra, a sobra e o custo líquido; embaixo, os totais.</p>
       <p><b>Retorno.</b> A taxa de retorno muda com o item, a cidade, o bônus diário e o foco, e o jogo mostra o valor exato no painel da estação antes de você confirmar. Copie esse número: um campo pro craft e um pra cada material que você for refinar. A página não deriva nada; sem bônus nenhum a estação dá 15,3%. Artefato nunca retorna. Taxa da estação: digite a da estação, em prata por 100 de nutrição; cada unidade consome 11,25% do valor do item (T4 1,8; T8 28,8; dobra a cada encantamento), e a página converte.</p>
-      <p><b>O que craftar.</b> O modo que abre primeiro. Você diz o que crafta (tier, encantamento, tipo), quanto tem de prata, se usa foco e as taxas; a página testa as rotas e diz o que fazer: onde comprar cada material, onde craftar (cidade com bônus da categoria do item, tabela da wiki), se vale craftar um nível abaixo e encantar com runas, almas e relíquias, e onde vender (cidades reais ou Black Market, na hora ou com ordem de venda). No topo, "Melhor uso da sua prata agora" com as quantidades totais; na tabela, a conta embaixo de cada número e "mais rotas" com as alternativas. A quantidade é o menor entre o que a prata compra, o que o foco cobre e o que o lugar de venda negocia no prazo escolhido. Foco por item: o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização. "Só os que eu tenho" filtra pelas especializações guardadas. Clique numa linha pra abrir na calculadora.</p>
+      <p><b>O que craftar.</b> O modo que abre primeiro. Cobre tudo que se crafta e vende, não só o que o Black Market compra: armas e armaduras, ferramentas (picareta, foice, faca, martelo de pedra, machado, vara de pesca, kit de rastreio), equipamento de coleta, comida, poção, montaria, kit de reparo e baú. Comida e poção saem várias por craft; a receita aparece por unidade. Você diz o que crafta (tier, encantamento, tipo), quanto tem de prata, se usa foco e as taxas; a página testa as rotas e diz o que fazer: onde comprar cada material, onde craftar (cidade com bônus da categoria do item, tabela da wiki), se vale craftar um nível abaixo e encantar com runas, almas e relíquias, e onde vender (cidades reais ou Black Market, na hora ou com ordem de venda). No topo, "Melhor uso da sua prata agora" com as quantidades totais; na tabela, a conta embaixo de cada número e "mais rotas" com as alternativas. A quantidade é o menor entre o que a prata compra, o que o foco cobre e o que o lugar de venda negocia no prazo escolhido. Foco por item: o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização. "Só os que eu tenho" filtra pelas especializações guardadas. Clique numa linha pra abrir na calculadora.</p>
       <p><b>Refino.</b> O terceiro modo da aba é um motor de rotas. Você escolhe o recurso (ou todos), se usa foco, quanto tem de prata, quantas cidades a rota pode ter e as taxas. A página testa, pra cada tier e encantamento, todas as combinações: comprar o bruto e o refinado anterior em qualquer cidade, refinar em qualquer cidade (cada uma com o bônus que tem pro recurso: Fort Sterling tábuas, Thetford barras, Martlock couro, Lymhurst tecido, Bridgewatch blocos, +40% de bônus; foco +59%; estação 18%; retorno = bônus ÷ (1 + bônus)), vender em qualquer cidade na hora (ordem de compra) ou por ordem de venda (+2,5%), e devolve a rota de maior lucro por unidade, com custo, venda, média de 7 dias, vendas por dia, ROI e, com a sua prata, quantas unidades, o investimento e o lucro total. "Mais rotas" mostra as alternativas. Bônus diário: marque o recurso do dia (menu Atividades do jogo, +10% ou +20%). Taxa da estação: como a estação mostra, prata por 100 de nutrição; cada unidade consome 11,25% do valor do item (T4 1,8; T8 28,8; dobra a cada encantamento). Foco: diga quanto tem (10.000 por dia com premium, até 30.000) e sua especialização (o foco por unidade cai pela metade a cada 25 níveis); a quantidade fica limitada ao foco, e "1.000 de foco = +X" diz quanto ele rende. "Vender tudo em até" limita a quantidade ao que a cidade de venda negocia no prazo. Hideout não entra. No topo, "Melhor uso da sua prata agora" mostra a rota que mais rende com a sua prata, com as quantidades totais a comprar em cada cidade; na tabela, a conta de cada número fica embaixo dele.</p>
       <p><b>Vender.</b> O item aparece numa grade cidade × qualidade: em cada célula, o preço daquela qualidade (maior ordem de compra pra vender na hora, ou menor ordem de venda pra ordem), há quanto tempo foi visto, o outro lado e a média de 7 dias com vendas por dia daquela qualidade. O Black Market de Caerleon entra como linha (ele só compra, na hora, e só equipamento). Quem paga mais fica verde e já vem escolhido; clique em outra célula pra vender por aquele preço. Venda na hora paga só a taxa (4% com premium, 8% sem); ordem de venda paga mais 2,5%. No fim: custo líquido, venda líquida, lucro total e por item, ROI.</p>
     </section>
@@ -970,6 +970,9 @@
   const TIERS = [4, 5, 6, 7, 8];
   const ENCHS = [0, 1, 2, 3, 4];
   const SLOTS = ['Arma', 'Off-hand', 'Capacete', 'Armadura', 'Botas', 'Capa', 'Bolsa'];
+  // No Craft entra também o que o Black Market não compra.
+  const SLOTS_CRAFT = [...SLOTS, 'Ferramenta', 'Coleta', 'Comida', 'Poção', 'Montaria', 'Móvel'];
+  const TIERS_CRAFT = [1, 2, 3, 4, 5, 6, 7, 8];
   const QUALIDADE = { 1: 'Normal', 2: 'Bom', 3: 'Excepcional', 4: 'Excelente', 5: 'Obra-prima' };
   const TAXA_VENDA = { premium: 0.04, normal: 0.08 };
   const LIMITE_URL = 4000;    // a API corta em 4096
@@ -1167,8 +1170,12 @@
   function resumirHistorico(pontos) {
     const validos = pontos.filter((p) => p.item_count > 0 && p.avg_price > 0).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     if (!validos.length) return null;
+    // "Média" = preço do meio das vendas, pesado pela quantidade: um dia fora da curva (ex.: 610 facas T4 "vendidas" a
+    // 149 mil num dia em que o normal era 2 mil) não puxa o número. Média aritmética ponderada dava 27 mil nesse caso.
     const qtd = validos.reduce((a, p) => a + p.item_count, 0);
-    const media = validos.reduce((a, p) => a + p.avg_price * p.item_count, 0) / qtd;
+    const porPreco = validos.slice().sort((a, b) => a.avg_price - b.avg_price);
+    let acum = 0, media = porPreco[porPreco.length - 1].avg_price;
+    for (const p of porPreco) { acum += p.item_count; if (acum * 2 >= qtd) { media = p.avg_price; break; } }
     return { media: Math.round(media), d: validos[validos.length - 1].timestamp };
   }
 
@@ -1766,15 +1773,22 @@
     });
   }
   // Nome, tier e tipo de qualquer id: equipamento vem do catálogo, material de receitas.js.
+  // Item só do Craft: [nome, tier, ench, tipo, tem qualidade] no receitas.js.
+  const extraDe = (id) => { const e = window.ALBION_RECEITAS && window.ALBION_RECEITAS.e && window.ALBION_RECEITAS.e[id]; return e ? { id, nome: e[0], tier: e[1], ench: e[2], slot: e[3], qualidade: !!e[4] } : null; };
+  const extrasDoCraft = () => Object.keys((window.ALBION_RECEITAS && window.ALBION_RECEITAS.e) || {}).map(extraDe);
+  const equipDe = (id) => catalogo.get(id) || extraDe(id);
+  const temQualidade = (id) => catalogo.has(id) || !!(extraDe(id) || {}).qualidade;
+  // Quantidade de receita: comida e poção saem várias por craft, então a receita por unidade pode ser fracionada.
+  const qtdTxt = (q) => fmt.format(Math.round(q * 100) / 100);
   function infoItem(id) {
-    const eq = catalogo.get(id);
+    const eq = equipDe(id);
     if (eq) return { id, nome: eq.nome, tier: eq.tier, ench: eq.ench, tipo: 'equip' };
     const m = window.ALBION_RECEITAS.m[id];
     if (m) return { id, nome: m[0], tier: m[1], ench: m[2], tipo: m[3] };
     return { id, nome: id, tier: 0, ench: 0, tipo: 'outro' };
   }
   // Qualidade só existe pra equipamento (as marcadas no filtro); material é sempre 1.
-  const qualsDe = (id) => (catalogo.has(id) ? craft.qual.get().map(Number) : [1]);
+  const qualsDe = (id) => (temQualidade(id) ? craft.qual.get().map(Number) : [1]);
   // Melhor preço entre as qualidades marcadas: maior ordem de compra, menor ordem de venda. Diz qual qualidade é.
   const precoEm = (id, cidade, lado) => {
     const porQ = craft.precos?.get(id)?.[cidade];
@@ -1791,7 +1805,7 @@
     for (const q of qualsDe(id)) { const x = porQ[q]; if (x) { qtd += x.qtd; soma += x.media * x.qtd; } }
     return qtd ? { media: Math.round(soma / qtd), porDia: qtd / 7 } : null;
   };
-  const qualTxt = (id, x) => (x && catalogo.has(id) ? ' · ' + QUALIDADE[x.q] : '');
+  const qualTxt = (id, x) => (x && temQualidade(id) ? ' · ' + QUALIDADE[x.q] : '');
   const idadeHtml = (d) => `<span class="idade${Date.now() - d > 3600000 ? ' velho' : ''}">há ${idadeTxt(d)}</span>`;
 
   async function iniciarCraft() {
@@ -1807,6 +1821,7 @@
       const f = fam.get(k); f.variantes[ench] = id; f.nomes[ench] = nome;
     };
     for (const i of catalogo.values()) add(i.id, i.nome, i.tier, i.ench, i.slot);
+    for (const i of extrasDoCraft()) add(i.id, i.nome, i.tier, i.ench, i.slot);
     for (const [id, [nome, tier, ench, tipo]] of Object.entries(R.m)) add(id, nome, tier, ench, TIPO_TXT[tipo] || tipo);
     craft.familias = [...fam.values()].map((f) => { const e0 = Math.min(...Object.keys(f.variantes).map(Number)); f.nome = f.nomes[e0]; f.busca = semAcento(`${f.nome} t${f.tier} ${f.tipo}`); return f; });
     craft.familiaPorId = new Map();
@@ -1824,7 +1839,7 @@
       if (!termos.length) return fechar();
       atuais = craft.familias.filter((f) => termos.every((termo) => f.busca.includes(termo)));
       const t0 = termos[0];
-      atuais.sort((a, b) => (b.busca.startsWith(t0) - a.busca.startsWith(t0)) || a.nome.localeCompare(b.nome, 'pt-BR') || a.tier - b.tier);
+      atuais.sort((a, b) => (b.busca.startsWith(t0) - a.busca.startsWith(t0)) || a.nome.length - b.nome.length || a.nome.localeCompare(b.nome, 'pt-BR') || a.tier - b.tier);
       atuais = atuais.slice(0, 14);
       if (!atuais.length) return fechar();
       lista.innerHTML = atuais.map((f, i) => `<button type="button" data-i="${i}"><span>${escapar(f.nome)}</span><span class="meta"><span class="tier">T${f.tier}</span> · ${escapar(f.tipo)}</span></button>`).join('');
@@ -1912,7 +1927,7 @@
     const s = specDe(f);
     c('SpecNivel').value = s && s.nivel ? s.nivel : '';
     c('SpecFoco').value = focoDe(f, craft.ench) ?? '';
-    document.querySelector('.craft-spec').hidden = !catalogo.has(id);
+    document.querySelector('.craft-spec').hidden = !equipDe(id);
     c('Enchs').innerHTML = Object.keys(f.variantes).map(Number).sort((a, b) => a - b).map((e) => `<button type="button" class="aba${e === craft.ench ? ' ativa' : ''}" data-ench="${e}" title="${escapar(f.nomes[e])}">${e ? '.' + e : 'T' + f.tier}</button>`).join('');
     c('Item').hidden = false;
   }
@@ -2032,15 +2047,15 @@
       const [mid, q] = ent;
       const m = infoItem(mid), sub = R.r[mid];
       const modo = sub ? `<nav class="abas craft-modo"><button type="button" class="aba" data-modo="comprar">Comprar pronto</button><button type="button" class="aba" data-modo="refinar">Refinar do bruto</button></nav>` : '';
-      const subHtml = sub ? `<div class="craft-sub"><div class="craft-preco"><label>Retorno no refino <input type="number" class="qtd" data-ret-refino min="0" max="99" step="0.1" value="15.3" title="Copie do painel da estação de refino no jogo"> %</label><label>Taxa da estação de refino <span class="ajuda">por 100 de nutrição</span> <input type="number" class="qtd" data-taxa-refino min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. Cada unidade refinada consome 11,25% do valor dela (T4 1,8; T8 28,8)."></label></div>${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${sq} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
+      const subHtml = sub ? `<div class="craft-sub"><div class="craft-preco"><label>Retorno no refino <input type="number" class="qtd" data-ret-refino min="0" max="99" step="0.1" value="15.3" title="Copie do painel da estação de refino no jogo"> %</label><label>Taxa da estação de refino <span class="ajuda">por 100 de nutrição</span> <input type="number" class="qtd" data-taxa-refino min="0" step="1" value="0" title="Como a estação mostra: prata por 100 de nutrição. Cada unidade refinada consome 11,25% do valor dela (T4 1,8; T8 28,8)."></label></div>${sub.map(([sid, sq]) => { const s = infoItem(sid); return linhaHtml(sid, `<img class="craft-icone" src="${iconeUrl(sid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'" style="width:22px;height:22px;vertical-align:middle;margin-right:6px"><b>${qtdTxt(sq)} × ${escapar(s.nome)}</b> <span class="tier">${rotuloTier(s.tier, s.ench)}</span> por unidade refinada · <span class="total"></span>`); }).join('')}<p class="craft-retorno refino-txt"></p></div>` : '';
       return `<div class="craft-mat" data-mat="${mid}" data-tipo="${m.tipo}">
         <div class="craft-mat-cab">
           <img class="craft-icone" src="${iconeUrl(mid)}" alt="" width="44" height="44" loading="lazy" onerror="this.style.visibility='hidden'">
-          <div><div class="nome">${escapar(m.nome)} <span class="tier">${rotuloTier(m.tier, m.ench)}</span></div><div class="meta">${TIPO_TXT[m.tipo] || m.tipo}${semRetorno(ent) ? ' · sem retorno' : ''} · ${q} por item · comprar <span class="total"></span></div></div>
+          <div><div class="nome">${escapar(m.nome)} <span class="tier">${rotuloTier(m.tier, m.ench)}</span></div><div class="meta">${TIPO_TXT[m.tipo] || m.tipo}${semRetorno(ent) ? ' · sem retorno' : ''} · ${qtdTxt(q)} por item · comprar <span class="total"></span></div></div>
           ${modo}
           <div class="craft-num"><span>Compra<b class="c-custo n-compra">—</b></span><span>Sobra na bag<b class="c-lucro n-retorno">—</b></span><span>Custo líquido<b class="n-liquido">—</b></span></div>
         </div>
-        ${linhaHtml(mid, `Comprar pronto · <b>${q} por item</b>`)}
+        ${linhaHtml(mid, `Comprar pronto · <b>${qtdTxt(q)} por item</b>`)}
         ${subHtml}
       </div>`;
     }).join('');
@@ -2176,9 +2191,9 @@
     if (reco.pronto || !window.ALBION_RECEITAS) return;
     reco.pronto = true;
     reco.multi = {
-      tier: criarMulti(rc('Tier'), TIERS.map((x) => ({ valor: x, rotulo: `T${x}` })), [4, 5]),
+      tier: criarMulti(rc('Tier'), TIERS_CRAFT.map((x) => ({ valor: x, rotulo: `T${x}` })), [4, 5]),
       ench: criarMulti(rc('Ench'), ENCHS.map((x) => ({ valor: x, rotulo: `.${x}` })), [0]),
-      slot: criarMulti(rc('Slot'), SLOTS.map((x) => ({ valor: x, rotulo: x })), SLOTS),
+      slot: criarMulti(rc('Slot'), SLOTS_CRAFT.map((x) => ({ valor: x, rotulo: x })), SLOTS_CRAFT),
     };
     rc('Premium').value = el.premium.value;
     rc('Prata').value = prataAtual() || 1000000;
@@ -2207,7 +2222,7 @@
   async function buscarReco() {
     const base = SERVIDORES[el.servidor.value];
     const sel = { tiers: reco.multi.tier.get().map(Number), enchs: reco.multi.ench.get().map(Number), slots: reco.multi.slot.get() };
-    const itens = [...catalogo.values()].filter((i) => passaSelecao(i, sel) && rotasDe(i.id, craft.familiaPorId.get(i.id)).length);
+    const itens = [...catalogo.values(), ...extrasDoCraft()].filter((i) => passaSelecao(i, sel) && rotasDe(i.id, craft.familiaPorId.get(i.id)).length);
     if (!itens.length) { recoStatus('Nenhum item craftável nesse recorte.', true); return; }
     const mats = new Set();
     for (const i of itens) for (const rota of rotasDe(i.id, craft.familiaPorId.get(i.id))) for (const [m] of rota.mats) mats.add(m);
@@ -2285,7 +2300,7 @@
         if (ok(x.compra)) vendas.push({ cid: loc, modo: 'nahora', p: x.compra.p, d: x.compra.d, taxa: taxaBase, h7 });
         if (loc === BM) continue; // o Black Market só compra
         if (ok(x.venda)) vendas.push({ cid: loc, modo: 'ordem', p: x.venda.p, d: x.venda.d, taxa: taxaBase + 0.025, h7 });
-        else vendas.push({ cid: loc, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 });
+        else if (refVenda === null || h7.media <= refVenda * 3 || !++contagem.absurdos) vendas.push({ cid: loc, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 });
       }
       if (!vendas.length) { contagem.semVenda++; continue; }
       const bonusCid = R.b[base] || null, bonusRest = comRests ? R.rb[base] || null : null;
@@ -2366,7 +2381,7 @@
       const fixos = [...new Set(rt.compra.filter((x) => x.sem).map((x) => nomeFixo(x.id)))];
       const porCid = new Map();
       for (const x of rt.compra) { if (!porCid.has(x.cid)) porCid.set(x.cid, []); porCid.get(x.cid).push(x); }
-      const material = (x) => (n ? `<b>${fmt.format(unidadesComprar(x.q, n, x.sem ? 0 : rt.r))}</b> × ${nomeTier(x.id)} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${x.q} × ${nomeTier(x.id)} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)}`);
+      const material = (x) => (n ? `<b>${fmt.format(unidadesComprar(x.q, n, x.sem ? 0 : rt.r))}</b> × ${nomeTier(x.id)} a ${fmt.format(x.p)} ${idadeHtml(x.d)}` : `${qtdTxt(x.q)} × ${nomeTier(x.id)} a <b>${fmt.format(x.p)}</b> ${idadeHtml(x.d)}`);
       const compras = [...porCid].map(([cid, itens]) => `<li><span class="passo compra">Compre</span> em ${lugarHtml(cid)}: ${itens.map(material).join(' e ')}</li>`).join('');
       const encantar = rt.rt.chave !== 'direto';
       const crafte = `<li><span class="passo refino">Crafte</span> ${n ? `<b>${fmt.format(n)}</b> ` : ''}${encantar ? `${nomeTier(rt.rt.craftId)} ` : ''}em ${lugarHtml(rt.cidCraft)} ${rt.bonus ? 'com bônus da cidade' : 'sem bônus'}${rt.usaFoco ? ' e foco' : ''}: <b>${pctTxt(rt.r)}</b> dos materiais voltam${fixos.length ? ` (${fixos.join(', ')} não)` : ''}</li>`;
@@ -2527,7 +2542,7 @@
           const ok = (y) => y && fresco(y) && (refVenda === null || y.p <= refVenda * 3 || !++contagem.absurdos);
           if (ok(x.compra)) vendas.push({ cid, modo: 'nahora', p: x.compra.p, d: x.compra.d, taxa: taxaBase, h7 });
           if (ok(x.venda)) vendas.push({ cid, modo: 'ordem', p: x.venda.p, d: x.venda.d, taxa: taxaBase + 0.025, h7 });
-          else vendas.push({ cid, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 }); // média só sem ordem atual
+          else if (refVenda === null || h7.media <= refVenda * 3 || !++contagem.absurdos) vendas.push({ cid, modo: 'media', p: h7.media, d: null, taxa: taxaBase + 0.025, h7 }); // média só sem ordem atual
         }
         if (ofertas.some((o) => !o.porCidade.length) || !vendas.length) { contagem.semPreco++; continue; }
         // enumera: cidade de cada compra × cidade de refino × venda (cidade e modo); poda pelo máximo de cidades na rota
@@ -2646,7 +2661,7 @@
 
   function renderVenda() {
     const id = itemAtual(), R = window.ALBION_RECEITAS;
-    const temReceita = rotasDe(id, craft.familia).length > 0, equip = catalogo.has(id);
+    const temReceita = rotasDe(id, craft.familia).length > 0, equip = temQualidade(id);
     const lado = c('ModoVenda').value === 'ordem' ? 'venda' : 'compra';
     const outroLado = lado === 'compra' ? 'venda' : 'compra';
     const cidades = equip ? [...MERCADOS, 'Black Market'] : MERCADOS; // BM só compra equipamento, na hora

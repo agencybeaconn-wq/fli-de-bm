@@ -32,6 +32,10 @@ function restBonusCraft(it) {
 function cidadeBonusCraft(it) {
   const cat = it['@shopcategory'], sub = it['@shopsubcategory1'], id = it['@uniquename'];
   if (cat === 'offhands') return 'Martlock';
+  // Caerleon: equipamento de coleta, ferramenta e comida; Brecilien: poção (mesma tabela da wiki).
+  if (cat === 'gathering') return 'Caerleon';
+  if (cat === 'consumables' && sub === 'food') return 'Caerleon';
+  if (cat === 'consumables' && sub === 'potions') return 'Brecilien';
   if (cat === 'capes' || cat === 'bags' || /_(CAPE|CAPEITEM)/.test(id) || /_BAG/.test(id)) return 'Brecilien';
   for (const [cidade, subs] of Object.entries(BONUS_CRAFT)) if (subs.includes(sub)) return cidade;
   return null;
@@ -64,11 +68,33 @@ function escolherReceita(cr) {
   // Equipamentos do catálogo da ferramenta (items.js): [id, nome, tier, ench, slot].
   const janela = {}; new Function('window', fs.readFileSync(ITEMS_JS, 'utf8'))(janela);
   const equipamentos = janela.ALBION_ITEMS;
+  // Itens só do Craft (o Black Market não compra): ferramenta e equipamento de coleta, comida, poção, montaria, kit de
+  // reparo e baú. Saem do dump formatado (que tem os encantamentos com nome), filtrados pela categoria do dump bruto.
+  const noCatalogo = new Set(equipamentos.map(([id]) => id));
+  const slotExtra = (it, id) => {
+    const cat = it['@shopcategory'], sub = it['@shopsubcategory1'];
+    if (cat === 'gathering') return /_TOOL_/.test(id) ? 'Ferramenta' : 'Coleta';
+    if (cat === 'consumables') return sub === 'potions' ? 'Poção' : sub === 'food' ? 'Comida' : null;
+    if (cat === 'mounts') return 'Montaria';
+    if (cat === 'furniture') return 'Móvel';
+    return null;
+  };
+  const extras = [];
+  for (const f of fmt) {
+    const id = f.UniqueName;
+    if (!/^T[1-8]_/.test(id) || noCatalogo.has(id) || /NONTRADABLE|SKIN|_BABY|QUEST|TEST/.test(id)) continue;
+    const it = dump.get(id.replace(/@\d$/, ''));
+    const slot = it && slotExtra(it, id);
+    if (!slot) continue;
+    // [id, nome, tier, ench, tipo, tem qualidade]
+    extras.push([id, nomes.get(id) || id, Number(it['@tier']) || 0, Number((/@(\d)$/.exec(id) || [])[1] || 0), slot, Number(it['@maxqualitylevel'] || 1) > 1 ? 1 : 0]);
+  }
+  const todosItens = [...equipamentos, ...extras];
 
   const receitas = {}; // idApi -> { n, t, e, k, rec: { mats: [[idApi, qtd, retorna]], saida } }
   const materiaisUsados = new Set();
   let semReceita = 0;
-  for (const [id, nome, tier, ench] of equipamentos) {
+  for (const [id, nome, tier, ench, slot, temQual] of todosItens) {
     const base = id.replace(/@\d$/, '');
     const it = dump.get(base);
     if (!it) { semReceita++; continue; }
@@ -83,7 +109,7 @@ function escolherReceita(cr) {
       up = e ? lista(e.upgraderequirements?.upgraderesource).map((r) => [idApi(r['@uniquename']), Number(r['@count'])]) : [];
     }
     if (!rec) { semReceita++; continue; }
-    receitas[id] = { n: nome, t: tier, e: ench, k: 'equip', rec, up, bonus: cidadeBonusCraft(it), rest: restBonusCraft(it) };
+    receitas[id] = { n: nome, t: tier, e: ench, k: 'equip', rec, up, bonus: cidadeBonusCraft(it), rest: restBonusCraft(it), extra: noCatalogo.has(id) ? null : [slot, temQual] };
     for (const [m] of rec.mats) materiaisUsados.add(m);
     for (const [m] of up) materiaisUsados.add(m);
   }
@@ -122,14 +148,18 @@ function escolherReceita(cr) {
   // f = custo de foco { id: foco com 0 de especialização } de equipamentos e refinados (valor do equipamento = soma dos materiais).
   // b = cidade com bônus de craft { id base do equipamento: cidade }.
   // rb = Rest com bônus de craft { id base: Rest }.
-  const saida = { m: {}, r: {}, u: {}, f: {}, b: {}, rb: {} };
+  // e = itens só do Craft { id: [nome, tier, ench, tipo, tem qualidade] }. Receita e foco ficam por unidade: poção e
+  // comida saem 5 ou 10 por craft.
+  const saida = { m: {}, r: {}, u: {}, f: {}, b: {}, rb: {}, e: {} };
   for (const [id, x] of Object.entries(receitas)) {
     if (x.k !== 'equip') saida.m[id] = [x.n, x.t, x.e, x.k, x.peso, x.valor];
-    if (x.rec && x.rec.foco) saida.f[id] = x.rec.foco;
+    const porCraft = (x.rec && x.rec.saida) || 1;
+    if (x.rec && x.rec.foco) saida.f[id] = Math.round((x.rec.foco / porCraft) * 100) / 100;
+    if (x.extra) saida.e[id] = [x.n, x.t, x.e, ...x.extra];
     if (x.bonus) saida.b[id.replace(/@\d$/, '')] = x.bonus;
     if (x.rest) saida.rb[id.replace(/@\d$/, '')] = x.rest;
     // [material, quantidade] ou [material, quantidade, 0] quando o material não volta no retorno (maxreturnamount 0 no dump).
-    if (x.rec) saida.r[id] = x.rec.mats.map(([m, q, ret]) => (ret ? [m, q] : [m, q, 0]));
+    if (x.rec) saida.r[id] = x.rec.mats.map(([m, q, ret]) => { const qu = Math.round((q / porCraft) * 10000) / 10000; return ret ? [m, qu] : [m, qu, 0]; });
     if (x.up && x.up.length) saida.u[id] = x.up;
   }
   const geradoEm = new Date().toISOString().slice(0, 10);
@@ -137,7 +167,10 @@ function escolherReceita(cr) {
   const porTipo = {};
   for (const r of Object.values(receitas)) porTipo[r.k] = (porTipo[r.k] || 0) + 1;
   console.log(`receitas.js: ${Object.keys(receitas).length} entradas, ${(fs.statSync(SAIDA).size / 1024).toFixed(0)} KB, por tipo ${JSON.stringify(porTipo)}, equipamentos sem receita: ${semReceita}`);
-  for (const id of ['T5_PLANKS_LEVEL1@1', 'T4_RUNE', 'T4_SOUL']) console.log(id, JSON.stringify(saida.m[id]));
+  const porSlot = {};
+  for (const e of Object.values(saida.e)) porSlot[e[3]] = (porSlot[e[3]] || 0) + 1;
+  console.log('itens só do Craft:', Object.keys(saida.e).length, JSON.stringify(porSlot));
+  for (const id of ['T4_2H_TOOL_FISHINGROD', 'T4_POTION_HEAL', 'T4_MEAL_SOUP', 'T4_MOUNT_OX', 'T4_HEAD_GATHERER_FIBER@2']) console.log(id, JSON.stringify(saida.e[id]), JSON.stringify(saida.r[id]), 'foco', saida.f[id], 'bônus', saida.b[id.replace(/@\d$/, '')]);
   for (const id of ['T4_MAIN_SWORD@1', 'T4_MAIN_SWORD@3', 'T6_ARMOR_PLATE_AVALON@2']) console.log(id, 'encantar:', JSON.stringify(saida.u[id]));
   console.log('encantáveis:', Object.keys(saida.u).length, '| com foco:', Object.keys(saida.f).length, '| com cidade de bônus:', Object.keys(saida.b).length);
   const porCidade = {};
