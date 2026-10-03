@@ -288,6 +288,8 @@
   .ref-destaque .nome { font-size: 16px; font-weight: 650; }
   .ref-destaque .passos-rota { min-width: 0; font-size: 13.5px; }
   .ref-destaque .craft-cartoes { margin-top: 12px; }
+  .ref-conta { margin: 12px 0 0; font-size: 14.5px; }
+  .ref-conta b { font-family: var(--mono); font-weight: 500; }
   .refino-tabela .alt td { padding: 4px 8px 12px 8px; background: rgba(255, 255, 255, .025); white-space: normal; }
   .refino-tabela .alt table { width: auto; font-size: 12.5px; }
   .refino-tabela .alt th, .refino-tabela .alt td { padding: 4px 10px; position: static; }
@@ -734,7 +736,7 @@
       <div class="campo"><span class="grupo-label">Tier</span><div class="multi" id="recoTier"></div></div>
       <div class="campo"><span class="grupo-label">Encantamento</span><div class="multi" id="recoEnch"></div></div>
       <div class="campo"><span class="grupo-label">Tipo de item</span><div class="multi" id="recoSlot"></div></div>
-      <div class="campo"><label for="recoPrata">Prata pra investir</label><input id="recoPrata" type="number" min="0" step="100000" value="1000000"></div>
+      <div class="campo"><label for="recoPrata">Prata pra investir <span class="ajuda" id="recoPrataTxt"></span></label><input id="recoPrata" type="number" min="0" step="100000" value="1000000"></div>
       <div class="campo"><label for="recoFoco">Uso foco</label><select id="recoFoco"><option value="nao" selected>Não</option><option value="sim">Sim</option></select></div>
       <div class="campo so-foco" hidden><label for="recoFocoDisp">Foco disponível</label><input id="recoFocoDisp" type="number" min="0" step="1000" value="30000" title="Com premium você ganha 10.000 de foco por dia e guarda até 30.000. O foco por item é o que você guardou no cartão do item na calculadora; sem isso, o custo do jogo sem especialização."></div>
       <div class="campo"><label for="recoCidades">Cidades na rota</label><select id="recoCidades" title="Quantas cidades diferentes a rota pode ter: comprar, craftar e vender (o Black Market fica em Caerleon)"><option value="3" selected>Até 3 (melhor lucro)</option><option value="2">Até 2</option><option value="1">Só 1 (tudo na mesma cidade)</option></select></div>
@@ -780,7 +782,7 @@
       <div class="campo"><label for="refFoco">Uso foco</label><select id="refFoco"><option value="nao" selected>Não</option><option value="sim">Sim</option></select></div>
       <div class="campo so-foco" hidden><label for="refFocoDisp">Foco disponível</label><input id="refFocoDisp" type="number" min="0" step="1000" value="30000" title="Com premium você ganha 10.000 de foco por dia e guarda até 30.000"></div>
       <div class="campo so-foco" hidden><label for="refSpec">Especialização de refino <span class="ajuda">0 a 100</span></label><input id="refSpec" type="number" min="0" max="100" step="1" value="0" title="Nível dos seus nós de refino do recurso. Não muda o retorno; só barateia o foco (metade a cada 25 níveis)"></div>
-      <div class="campo"><label for="refPrata">Prata pra investir</label><input id="refPrata" type="number" min="0" step="100000" value="1000000"></div>
+      <div class="campo"><label for="refPrata">Prata pra investir <span class="ajuda" id="refPrataTxt"></span></label><input id="refPrata" type="number" min="0" step="100000" value="1000000"></div>
       <div class="campo"><label for="refCidades">Cidades na rota</label><select id="refCidades" title="Quantas cidades diferentes a rota pode ter: comprar, refinar e vender"><option value="3" selected>Até 3 (melhor lucro)</option><option value="2">Até 2</option><option value="1">Só 1 (tudo na mesma cidade)</option></select></div>
       <div class="campo"><label for="refIdade">Idade máx. do preço</label><select id="refIdade" title="Preço visto há mais tempo que isso não entra na rota (listagem antiga costuma já ter sido comprada)"><option value="1">1 hora</option><option value="3">3 horas</option><option value="6" selected>6 horas</option><option value="12">12 horas</option><option value="24">24 horas</option></select></div>
       <div class="campo"><label for="refMinDia">Mín. vendas/dia na venda</label><input id="refMinDia" type="number" min="0" step="1" value="10" title="Cidade de venda precisa negociar pelo menos isso por dia (média de 7 dias) pra entrar na rota"></div>
@@ -1713,6 +1715,8 @@
   const SEM_RETORNO = new Set(['artefato', 'encantamento']);
   // Material que não volta no retorno: o dump marca (artefato, equipamento usado como material, ficha) e runas, almas e
   // relíquias do encantamento nunca voltam.
+  // "12,7 milhões", "850 mil": ajuda a ler número grande.
+  const extenso = (v) => { const a = Math.abs(v), s = v < 0 ? '−' : ''; const f = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits: x < 10 ? 2 : 1 }); if (a >= 1e9) return `${s}${f(a / 1e9)} ${a >= 2e9 ? 'bilhões' : 'bilhão'}`; if (a >= 1e6) return `${s}${f(a / 1e6)} ${a >= 2e6 ? 'milhões' : 'milhão'}`; if (a >= 1e3) return `${s}${f(a / 1e3)} mil`; return `${s}${Math.round(a)}`; };
   const semRetorno = (ent) => ent[2] === 0 || SEM_RETORNO.has(infoItem(ent[0]).tipo);
   // Valor do item (pra taxa da estação): material tem no dump; equipamento é a soma do valor dos materiais.
   const valorItemDe = (id, prof = 0) => { const R = window.ALBION_RECEITAS, m = R.m[id]; if (m && m[5]) return m[5]; if (prof > 3 || !R.r[id]) return 0; return R.r[id].reduce((a, [x, q]) => a + valorItemDe(x, prof + 1) * q, 0); };
@@ -2150,6 +2154,8 @@
     };
     rc('Premium').value = el.premium.value;
     rc('Prata').value = prataAtual() || 1000000;
+    const prataTxt = () => { const v = num(rc('Prata')) || 0; rc('PrataTxt').textContent = v ? extenso(v) : ''; };
+    prataTxt(); rc('Prata').addEventListener('input', prataTxt);
     const recalc = () => { if (reco.dados) { calcularReco(); renderReco(); } };
     const mostrarFoco = () => document.querySelectorAll('#craftRecoWrap .so-foco').forEach((x) => { x.hidden = rc('Foco').value !== 'sim'; });
     mostrarFoco();
@@ -2309,7 +2315,7 @@
       const limite = n === nPrata ? 'prata' : n === nFoco ? 'foco' : 'mercado';
       const custoSemFoco = melhor.compra.reduce((a, x) => a + x.p * x.q * (x.sem ? 1 : 1 - retornoCraft(melhor.bonus, false)), 0) + melhor.fee;
       const focoPor1000 = foco && focoUnit ? ((custoSemFoco - melhor.custo) / focoUnit) * 1000 : null;
-      reco.linhas.push({ it, fam, spec: sp && sp.nivel ? sp.nivel : null, bonusCid, melhor, alternativas, h7, n, invest: n ? invest(n) : 0, lucroTotal: melhor.lucro * n, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, limite, focoUnit, focoSalvo, focoUsado: focoUnit * n, focoPor1000 });
+      reco.linhas.push({ it, fam, spec: sp && sp.nivel ? sp.nivel : null, bonusCid, melhor, alternativas, h7, n, invest: n ? invest(n) : 0, recebe: n * melhor.venda.p * (1 - melhor.venda.taxa), lucroTotal: n ? n * melhor.venda.p * (1 - melhor.venda.taxa) - invest(n) : 0, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, limite, focoUnit, focoSalvo, focoUsado: focoUnit * n, focoPor1000 });
     }
     reco.contagem = contagem;
   }
@@ -2355,7 +2361,7 @@
       <td class="num c-lucro">${sinal(l.lucro)}<span class="conta">${fmt.format(Math.round(liq))} − ${fmt.format(Math.round(l.custo))}</span></td>
       <td class="num c-roi">${Math.round(l.roi * 100)}%<span class="conta">${sinal(l.lucro)} ÷ ${fmt.format(Math.round(l.custo))}</span></td>
       <td class="num">${l.h7 ? `${porDiaTxt(l.h7.porDia)}/dia<span class="conta">por dia ${lugarVenda(rt.venda)}</span><span class="conta">média 7 dias: ${fmt.format(l.h7.media)}</span>` : '<span class="subtxt">sem vendas em 7 dias</span>'}</td>
-      <td class="num">${l.n ? `<b>${fmt.format(l.n)}</b> itens<span class="conta">gasta ${fmt.format(Math.round(l.invest))}</span><span class="conta c-lucro">ganha ${sinal(l.lucroTotal)}</span>${l.dias !== null ? `<span class="conta">vende tudo em ~${l.dias < 1 ? '1' : fmt.format(Math.ceil(l.dias))} dia(s)</span>` : ''}<span class="conta">${limiteTxt(l)}</span>${l.focoUnit ? `<span class="conta">usa ${fmt.format(Math.round(l.focoUsado))} de foco · 1.000 de foco = ${sinal(l.focoPor1000)}</span>` : ''}` : `<span class="subtxt">${semUnidadeTxt(l)}</span>`}</td>
+      <td class="num">${l.n ? `<b>${fmt.format(l.n)}</b> itens<span class="conta">investe ${fmt.format(Math.round(l.invest))}</span><span class="conta">recebe ${fmt.format(Math.round(l.recebe))}</span><span class="conta c-lucro">lucro ${sinal(l.lucroTotal)} (${extenso(l.lucroTotal)})</span>${l.dias !== null ? `<span class="conta">vende tudo em ~${l.dias < 1 ? '1' : fmt.format(Math.ceil(l.dias))} dia(s)</span>` : ''}<span class="conta">${limiteTxt(l)}</span>${l.focoUnit ? `<span class="conta">usa ${fmt.format(Math.round(l.focoUsado))} de foco · 1.000 de foco = ${sinal(l.focoPor1000)}</span>` : ''}` : `<span class="subtxt">${semUnidadeTxt(l)}</span>`}</td>
       <td><button type="button" class="link" data-mais="${l.it.id}">${reco.aberto === l.it.id ? 'fechar' : 'mais rotas'}</button></td>
     </tr>${alt}`;
     }).join('');
@@ -2364,7 +2370,7 @@
     rc('Destaque').hidden = !top;
     if (top) {
       const dias = top.dias === null ? '—' : `~${top.dias < 1 ? '1' : fmt.format(Math.ceil(top.dias))} dia(s)`;
-      rc('Destaque').innerHTML = `<div class="ref-destaque-cab"><img class="craft-icone" src="${iconeUrl(top.it.id)}" alt="" onerror="this.style.visibility='hidden'"><div><div class="titulo">Melhor uso da sua prata agora</div><div class="nome">${escapar(top.it.nome)} <span class="tier">${rotuloTier(top.it.tier, top.it.ench)}</span></div></div></div>${passosHtml(top, top.melhor, top.n)}<div class="craft-cartoes"><div class="cartao"><span>Gasta</span><b class="c-custo">${fmt.format(Math.round(top.invest))}</b><span>${fmt.format(top.n)} itens</span></div><div class="cartao"><span>Ganha</span><b class="c-lucro">${sinal(top.lucroTotal)}</b><span>${sinal(top.lucro)} por item</span></div><div class="cartao"><span>ROI</span><b class="c-roi">${Math.round(top.roi * 100)}%</b><span>lucro sobre o custo</span></div><div class="cartao"><span>Vende tudo em</span><b>${dias}</b><span>${top.h7 ? `${porDiaTxt(top.h7.porDia)} vendidos por dia ${lugarVenda(top.melhor.venda)}` : ''}</span></div>${top.focoUnit ? `<div class="cartao"><span>Foco</span><b>${fmt.format(Math.round(top.focoUsado))}</b><span>de ${fmt.format(num(rc('FocoDisp')) ?? 0)} · 1.000 de foco = ${sinal(top.focoPor1000)}</span></div>` : ''}</div><p class="craft-retorno">${limiteTxt(top)}.${top.limite !== 'prata' ? ` Sobra prata: ${fmt.format(Math.max(0, Math.round(prata - top.invest)))}.` : ''}</p>`;
+      rc('Destaque').innerHTML = `<div class="ref-destaque-cab"><img class="craft-icone" src="${iconeUrl(top.it.id)}" alt="" onerror="this.style.visibility='hidden'"><div><div class="titulo">Melhor uso da sua prata agora</div><div class="nome">${escapar(top.it.nome)} <span class="tier">${rotuloTier(top.it.tier, top.it.ench)}</span></div></div></div>${passosHtml(top, top.melhor, top.n)}<p class="ref-conta">Você investe <b class="c-custo">${fmt.format(Math.round(top.invest))}</b>, recebe <b class="c-bm">${fmt.format(Math.round(top.recebe))}</b> vendendo e fica com <b class="c-lucro">${sinal(top.lucroTotal)}</b> de lucro.</p><div class="craft-cartoes"><div class="cartao"><span>Você investe</span><b class="c-custo">${fmt.format(Math.round(top.invest))}</b><span>${extenso(top.invest)} · ${fmt.format(top.n)} itens</span></div><div class="cartao"><span>Recebe na venda</span><b class="c-bm">${fmt.format(Math.round(top.recebe))}</b><span>${extenso(top.recebe)} · já sem a taxa</span></div><div class="cartao destaque"><span>Lucro</span><b class="c-lucro">${sinal(top.lucroTotal)}</b><span>${extenso(top.lucroTotal)} · ${top.invest ? Math.round((top.lucroTotal / top.invest) * 100) : 0}% sobre o que investe</span></div><div class="cartao"><span>Vende tudo em</span><b>${dias}</b><span>${top.h7 ? `${porDiaTxt(top.h7.porDia)} vendidos por dia ${lugarVenda(top.melhor.venda)}` : ''}</span></div>${top.focoUnit ? `<div class="cartao"><span>Foco</span><b>${fmt.format(Math.round(top.focoUsado))}</b><span>de ${fmt.format(num(rc('FocoDisp')) ?? 0)} · 1.000 de foco = ${sinal(top.focoPor1000)}</span></div>` : ''}</div><p class="craft-retorno">${limiteTxt(top)}.${top.limite !== 'prata' ? ` Sobra prata: ${fmt.format(Math.max(0, Math.round(prata - top.invest)))}.` : ''}</p>`;
     }
     const c0 = reco.contagem;
     rc('Resumo').textContent = `${foco ? `Com foco (${fmt.format(num(rc('FocoDisp')) ?? 0)} disponível)` : 'Sem foco'}, ${fmt.format(prata)} de prata, até ${rc('Cidades').value} cidade(s) por rota, vendendo tudo em ${diasSel ? `até ${diasSel} dia(s)` : 'qualquer prazo'}, taxa da estação ${fmt.format(num(rc('Taxa')) || 0)} por 100 de nutrição. Cada linha é a rota que mais rende por item: os passos estão em "O que fazer" e a conta fica embaixo de cada número. Qualidade Normal. ⚠ é preço visto há mais de 1 hora.${linhas.length > 200 ? ' Mostrando os 200 primeiros.' : ''}`;
@@ -2386,6 +2392,8 @@
     refino.pronto = true;
     rf('Premium').value = el.premium.value;
     rf('Prata').value = prataAtual() || 1000000;
+    const prataTxt = () => { const v = num(rf('Prata')) || 0; rf('PrataTxt').textContent = v ? extenso(v) : ''; };
+    prataTxt(); rf('Prata').addEventListener('input', prataTxt);
     rf('Buscar').addEventListener('click', buscarRefino);
     refino.diario = criarMulti(rf('Diario'), Object.values(REFINO).flatMap(([RAW, , rotulo]) => { const nome = rotulo.split(' → ')[0]; return [10, 20].map((p) => ({ valor: `${RAW}:${p / 100}`, rotulo: `${nome[0].toUpperCase()}${nome.slice(1)} +${p}%` })); }), []);
     const recalc = () => { if (refino.dados) { calcularRefino(); renderRefino(); } };
@@ -2533,7 +2541,7 @@
         const mat = melhor.compra.reduce((a, x) => a + x.p * x.q, 0);
         const custoSemFoco = mat * (1 - retornoRefino(RAW, melhor.cidRef, false, diario[RAW] || 0)) + fee;
         const focoPor1000 = foco && focoUnit ? ((custoSemFoco - melhor.custo) / focoUnit) * 1000 : null;
-        refino.linhas.push({ id, info, tipo, rotulo, melhor, alternativas: rotas.filter((x) => x !== melhor).slice(0, 6), h7, n, invest, lucroTotal: melhor.lucro * n, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, fee, limite, nPrata, nFoco, nMercado, focoUnit, focoUsado: focoUnit * n, focoPor1000 });
+        refino.linhas.push({ id, info, tipo, rotulo, melhor, alternativas: rotas.filter((x) => x !== melhor).slice(0, 6), h7, n, invest, recebe: n * melhor.venda.p * (1 - melhor.venda.taxa), lucroTotal: n * melhor.venda.p * (1 - melhor.venda.taxa) - invest, custo: melhor.custo, lucro: melhor.lucro, roi: melhor.roi, porDia: h7 ? h7.porDia : 0, dias: h7 && h7.porDia ? n / h7.porDia : null, fee, limite, nPrata, nFoco, nMercado, focoUnit, focoUsado: focoUnit * n, focoPor1000 });
       }
     }
     refino.contagem = contagem;
@@ -2576,7 +2584,7 @@
       <td class="num c-lucro">${sinal(l.lucro)}<span class="conta">${fmt.format(Math.round(liq))} − ${fmt.format(Math.round(l.custo))}</span></td>
       <td class="num c-roi">${Math.round(l.roi * 100)}%<span class="conta">${sinal(l.lucro)} ÷ ${fmt.format(Math.round(l.custo))}</span></td>
       <td class="num">${l.h7 ? `${porDiaTxt(l.h7.porDia)}/dia<span class="conta">por dia em ${escapar(l.melhor.venda.cid)}</span><span class="conta">média 7 dias: ${fmt.format(l.h7.media)}</span>` : '<span class="subtxt">sem vendas em 7 dias</span>'}</td>
-      <td class="num">${l.n ? `<b>${fmt.format(l.n)}</b> unidades<span class="conta">gasta ${fmt.format(Math.round(l.invest))}</span><span class="conta c-lucro">ganha ${sinal(l.lucroTotal)}</span>${l.dias !== null ? `<span class="conta">vende tudo em ~${l.dias < 1 ? '1' : fmt.format(Math.ceil(l.dias))} dia(s)</span>` : ''}<span class="conta">${limiteTxt(l)}</span>${l.focoUnit ? `<span class="conta">usa ${fmt.format(Math.round(l.focoUsado))} de foco · 1.000 de foco = ${sinal(l.focoPor1000)}</span>` : ''}` : `<span class="subtxt">${semUnidadeTxt(l)}</span>`}</td>
+      <td class="num">${l.n ? `<b>${fmt.format(l.n)}</b> unidades<span class="conta">investe ${fmt.format(Math.round(l.invest))}</span><span class="conta">recebe ${fmt.format(Math.round(l.recebe))}</span><span class="conta c-lucro">lucro ${sinal(l.lucroTotal)} (${extenso(l.lucroTotal)})</span>${l.dias !== null ? `<span class="conta">vende tudo em ~${l.dias < 1 ? '1' : fmt.format(Math.ceil(l.dias))} dia(s)</span>` : ''}<span class="conta">${limiteTxt(l)}</span>${l.focoUnit ? `<span class="conta">usa ${fmt.format(Math.round(l.focoUsado))} de foco · 1.000 de foco = ${sinal(l.focoPor1000)}</span>` : ''}` : `<span class="subtxt">${semUnidadeTxt(l)}</span>`}</td>
       <td><button type="button" class="link" data-mais="${l.id}">${refino.aberto === l.id ? 'fechar' : 'mais rotas'}</button></td>
     </tr>${alt}`;
     }).join('');
@@ -2589,7 +2597,7 @@
     rf('Destaque').hidden = !top;
     if (top) {
       const dias = top.dias === null ? '—' : `~${top.dias < 1 ? '1' : fmt.format(Math.ceil(top.dias))} dia(s)`;
-      rf('Destaque').innerHTML = `<div class="ref-destaque-cab"><img class="craft-icone" src="${iconeUrl(top.id)}" alt="" onerror="this.style.visibility='hidden'"><div><div class="titulo">Melhor uso da sua prata agora</div><div class="nome">${escapar(top.info.nome)} <span class="tier">${rotuloTier(top.info.tier, top.info.ench)}</span></div></div></div>${rotaHtml(top.melhor, REFINO[top.tipo][0], top.n)}<div class="craft-cartoes"><div class="cartao"><span>Gasta</span><b class="c-custo">${fmt.format(Math.round(top.invest))}</b><span>${fmt.format(top.n)} unidades</span></div><div class="cartao"><span>Ganha</span><b class="c-lucro">${sinal(top.lucroTotal)}</b><span>${sinal(top.lucro)} por unidade</span></div><div class="cartao"><span>ROI</span><b class="c-roi">${Math.round(top.roi * 100)}%</b><span>lucro sobre o custo</span></div><div class="cartao"><span>Vende tudo em</span><b>${dias}</b><span>${top.h7 ? `${porDiaTxt(top.h7.porDia)} vendidas por dia em ${escapar(top.melhor.venda.cid)}` : ''}</span></div>${top.focoUnit ? `<div class="cartao"><span>Foco</span><b>${fmt.format(Math.round(top.focoUsado))}</b><span>de ${fmt.format(num(rf('FocoDisp')) ?? 0)} · 1.000 de foco = ${sinal(top.focoPor1000)}</span></div>` : ''}</div><p class="craft-retorno">${limiteTxt(top)}.${top.limite !== 'prata' ? ` Sobra prata: ${fmt.format(Math.max(0, Math.round(prata - top.invest)))}.` : ''}</p>`;
+      rf('Destaque').innerHTML = `<div class="ref-destaque-cab"><img class="craft-icone" src="${iconeUrl(top.id)}" alt="" onerror="this.style.visibility='hidden'"><div><div class="titulo">Melhor uso da sua prata agora</div><div class="nome">${escapar(top.info.nome)} <span class="tier">${rotuloTier(top.info.tier, top.info.ench)}</span></div></div></div>${rotaHtml(top.melhor, REFINO[top.tipo][0], top.n)}<p class="ref-conta">Você investe <b class="c-custo">${fmt.format(Math.round(top.invest))}</b>, recebe <b class="c-bm">${fmt.format(Math.round(top.recebe))}</b> vendendo e fica com <b class="c-lucro">${sinal(top.lucroTotal)}</b> de lucro.</p><div class="craft-cartoes"><div class="cartao"><span>Você investe</span><b class="c-custo">${fmt.format(Math.round(top.invest))}</b><span>${extenso(top.invest)} · ${fmt.format(top.n)} unidades</span></div><div class="cartao"><span>Recebe na venda</span><b class="c-bm">${fmt.format(Math.round(top.recebe))}</b><span>${extenso(top.recebe)} · já sem a taxa</span></div><div class="cartao destaque"><span>Lucro</span><b class="c-lucro">${sinal(top.lucroTotal)}</b><span>${extenso(top.lucroTotal)} · ${top.invest ? Math.round((top.lucroTotal / top.invest) * 100) : 0}% sobre o que investe</span></div><div class="cartao"><span>Vende tudo em</span><b>${dias}</b><span>${top.h7 ? `${porDiaTxt(top.h7.porDia)} vendidas por dia em ${escapar(top.melhor.venda.cid)}` : ''}</span></div>${top.focoUnit ? `<div class="cartao"><span>Foco</span><b>${fmt.format(Math.round(top.focoUsado))}</b><span>de ${fmt.format(num(rf('FocoDisp')) ?? 0)} · 1.000 de foco = ${sinal(top.focoPor1000)}</span></div>` : ''}</div><p class="craft-retorno">${limiteTxt(top)}.${top.limite !== 'prata' ? ` Sobra prata: ${fmt.format(Math.max(0, Math.round(prata - top.invest)))}.` : ''}</p>`;
     }
     rf('Resultado').hidden = false;
   }
